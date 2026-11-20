@@ -5,6 +5,7 @@ import { contains, hitIndex, urinalRects, type Rect } from './layout';
 import { formatTime, levelLabel } from './format';
 import { skipInfo } from './perkInfo';
 import { playSound } from '../audio';
+import { onAppHidden } from '../lifecycle';
 import {
   containImage,
   drawDoor,
@@ -58,12 +59,6 @@ export class GameScene extends Phaser.Scene {
   /** Ignore taps until this scene time (door animation in progress). */
   private inputLockedUntil = 0;
   private lastSkipEnabled: boolean | null = null;
-  private onVisibility = (): void => {
-    // Backgrounding the app discards the run (spec 5.4: "wyjście z poziomu =
-    // świeża gra", no pause). Balance and records live in the session, which
-    // already persisted them as the events happened.
-    if (document.visibilityState === 'hidden') this.toStart();
-  };
 
   constructor() {
     super('GameScene');
@@ -116,10 +111,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onTap(p.x, p.y));
-    document.addEventListener('visibilitychange', this.onVisibility);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
-      document.removeEventListener('visibilitychange', this.onVisibility),
-    );
+    // Backgrounding the app discards the run (spec 5.4: "wyjście z poziomu =
+    // świeża gra", no pause): page hidden in the browser, or Capacitor's
+    // appStateChange on Android. Balance and records live in the session,
+    // which already persisted them as the events happened.
+    const offHidden = onAppHidden(() => this.toStart());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offHidden);
 
     this.syncFromState();
   }

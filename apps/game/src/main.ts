@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from './constants';
 import { noopPlatform } from './ports';
 import { createSession } from './session';
-import { createStorage, localStorageBackend } from './storage';
+import { defaultBackend } from './nativeStorage';
+import { createStorage } from './storage';
 import { GameScene } from './scene/GameScene';
 import { PreloadScene } from './scene/PreloadScene';
 import { StartScene, type StartSceneData } from './scene/StartScene';
@@ -14,7 +15,7 @@ import { StartScene, type StartSceneData } from './scene/StartScene';
  */
 async function boot(): Promise<void> {
   const session = createSession({
-    storage: createStorage(localStorageBackend()),
+    storage: createStorage(defaultBackend()),
     platform: noopPlatform,
     seed: () => (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) & 0x7fffffff,
   });

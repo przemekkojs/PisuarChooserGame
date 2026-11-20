@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pisuar Chooser</string>
+    <string name="title_activity_main">Pisuar Chooser</string>
+    <string name="package_name">com.pisuar.chooser</string>
+    <string name="custom_url_scheme">com.pisuar.chooser</string>
+</resources>
