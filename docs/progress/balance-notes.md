@@ -28,6 +28,8 @@ Przed strojeniem (stare stałe): poziom 1 miał P=0.333 (za mało), poziom 30 P=
 `PERK_BASE.skip = 10 = SCORING.rewardBest` — pierwszy "Pomiń" kosztuje dokładnie jeden dobrze rozegrany poziom; zasada podwajania bez zmian. `PERK_BASE.continue = 15` bez zmian.
 
 ## Uwagi
-- Trudność rośnie monotonicznie, z jednym szumowym wyjątkiem (poziom 12 vs 11: spadek ~0.4%, wynik losowania na 200 ziarnach).
+- Trudność jest niemalejąca na 1..40 z jednym deterministycznym wyjątkiem: poziom 12 (8.50 -> 8.47, -0.35%). Ziarna są stałe, więc to cecha konfiguracji, nie szum losowania; test `balance.test.ts` dopuszcza tolerancję 2% na poziom. Próbkowanie siatki personEvery/wetEvery/peeEvery nie dało konfiguracji bez żadnego spadku, a ta ma najmniejszy.
+- Poziomy 36 i 37 mają identyczny wskaźnik (50.00): remis (zmienia się tylko czas/układ bez zmiany P), niemalejąco.
+- P(best) nie jest monotoniczne lokalnie (np. L12-L14 i L36-L37 wahają się o setne części) - liczy się wskaźnik trudności łączący P i czas.
 - Poziomy 1-2 mają ten sam wskaźnik P (różni je tylko czas).
 - Testy: `difficulty.test.ts` miał zakodowane stare wartości (4 pisuary na poz. 1, max 12) - zaktualizowane do nowych. Nowy `balance.test.ts` pilnuje niezmienników.

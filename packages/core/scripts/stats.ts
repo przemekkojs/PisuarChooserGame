@@ -17,6 +17,7 @@ export interface LevelStats {
 }
 
 export const SEEDS = 200;
+const LEVEL1_TIME = levelParams(1).timeMs;
 
 /** Stats for one level: uniform random pick among free urinals, averaged over fixed seeds. */
 export function levelStats(level: number, seeds = SEEDS): LevelStats {
@@ -53,5 +54,4 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
     difficulty,
   };
 }
-const LEVEL1_TIME = levelParams(1).timeMs;
 

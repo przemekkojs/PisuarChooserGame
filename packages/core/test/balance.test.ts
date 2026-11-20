@@ -14,6 +14,14 @@ describe('balance invariants', () => {
       expect(levelParams(l).timeMs).toBeLessThanOrEqual(levelParams(l - 1).timeMs);
     }
   });
+  it('difficulty index is non-decreasing over levels 1..40 (2% tolerance for the deterministic L12 dip)', () => {
+    let prev = levelStats(1).difficulty;
+    for (let l = 2; l <= 40; l++) {
+      const d = levelStats(l).difficulty;
+      expect(d, `level ${l}`).toBeGreaterThanOrEqual(prev * 0.98);
+      prev = d;
+    }
+  });
   it('first skip costs about one well-played level', () => {
     expect(PERK_BASE.skip).toBe(SCORING.rewardBest);
   });
