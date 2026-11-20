@@ -14,6 +14,10 @@ export const PALETTE = {
   floor: { clean: 0x9fb3c8, wet: 0x3d8fd6, pee: 0xe3c21b },
   person: 0x6b4fa0,
   smelly: 0x4f8a2b,
+  hero: 0xd35400,
+  heroPants: 0x2c3e50,
+  wet: 0x3d8fd6,
+  panel: 0x232a3d,
   best: 0x2ecc71,
   wrong: 0xe74c3c,
   button: 0x34495e,
@@ -25,6 +29,22 @@ export const PALETTE = {
 } as const;
 
 export const OUTLINE_PX = 6;
+
+const FONT = 'sans-serif';
+
+/** Centred, outlined placeholder text (shared by all scenes). */
+export function makeText(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  size: number,
+  msg = '',
+): Phaser.GameObjects.Text {
+  return scene.add
+    .text(x, y, msg, { fontFamily: FONT, fontSize: `${Math.round(size)}px`, color: PALETTE.text })
+    .setOrigin(0.5)
+    .setStroke('#0b0d12', Math.max(4, Math.round(size / 10)));
+}
 
 /** Rounded rectangle with the palette outline. */
 export function outlinedRect(
