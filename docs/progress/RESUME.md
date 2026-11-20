@@ -8,10 +8,11 @@
   - Task 4: punktacja, kary czasowe, ceny perków.
   - Task 5: maszyna stanów gry (`createGame({seed,balance,records})`, fazy START/DOOR_CLOSED/PLAYING/LEVEL_RESULT/SUMMARY, perki, rekord per trudność, timer 100 ms).
 - Task 6: symulacja (`npm run sim -w @pisuar/core`) i strojenie `LEVELS`; wnioski w `docs/progress/balance-notes.md`.
+- Task 7: szkielet `apps/game` (Phaser 3, Vite, 1080x1920 FIT), `storage.ts` (odporny zapis/odczyt), `ports.ts` (`noopPlatform`); `npm run build -w @pisuar/game` działa.
 - Stan: 60 testów przechodzi, `npm run typecheck` czysty. Gałąź `feat/pisuar-chooser`, HEAD = ostatni commit Task 6 (zob. `git log`).
 
 ## Następny krok
-- Task 7, potem Task 8–11 wg `docs/superpowers/plans/2026-11-20-pisuar-chooser-stages-1-6.md`. Etap 7 (leaderboard + zakupy) to osobny, jeszcze nienapisany plan.
+- Task 8, potem Task 9–11 wg `docs/superpowers/plans/2026-11-20-pisuar-chooser-stages-1-6.md`. Etap 7 (leaderboard + zakupy) to osobny, jeszcze nienapisany plan.
 
 ## Jak wznowić
 - Plan i specyfikacja: `docs/superpowers/plans/…stages-1-6.md`, `docs/superpowers/specs/…-design.md`.
