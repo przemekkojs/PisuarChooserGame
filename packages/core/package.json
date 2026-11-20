@@ -6,9 +6,11 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
+    "sim": "tsx scripts/simulate.ts",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {
+    "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

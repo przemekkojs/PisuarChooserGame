@@ -21,7 +21,7 @@ describe('createRng', () => {
 describe('levelParams', () => {
   it('starts at level 1', () => {
     expect(levelParams(1)).toEqual({
-      urinals: 4,
+      urinals: 3,
       persons: 1,
       smellyPersons: 0,
       wet: 0,
@@ -31,7 +31,7 @@ describe('levelParams', () => {
   });
   it('clamps time and urinals', () => {
     expect(levelParams(1000).timeMs).toBe(3000);
-    expect(levelParams(1000).urinals).toBeLessThanOrEqual(12);
+    expect(levelParams(1000).urinals).toBeLessThanOrEqual(18);
   });
   it('is monotonic and respects limits over 1..200', () => {
     let prev = levelParams(1);

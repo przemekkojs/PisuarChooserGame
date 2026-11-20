@@ -1,7 +1,5 @@
 # Pisuar Chooser – stan prac
 
-> **WSTRZYMANE na prośbę użytkownika po Task 5 (2026-11-20).** Czekamy na komendę wznowienia.
-
 ## Zrobione
 - Etap 1, Task 1: szkielet workspace (`@pisuar/core`, TS strict, Vitest, test dymny).
 - Etap 2 (rdzeń `packages/core`) gotowy i zrecenzowany:
@@ -9,11 +7,11 @@
   - Task 3: seedowany RNG, parametry poziomów, generator plansz, poziomy startowe trudności.
   - Task 4: punktacja, kary czasowe, ceny perków.
   - Task 5: maszyna stanów gry (`createGame({seed,balance,records})`, fazy START/DOOR_CLOSED/PLAYING/LEVEL_RESULT/SUMMARY, perki, rekord per trudność, timer 100 ms).
-- Stan: 56 testów przechodzi, `npm run typecheck` czysty. Gałąź `feat/pisuar-chooser`, HEAD 891cc0c (+ commit z tym plikiem).
+- Task 6: symulacja (`npm run sim -w @pisuar/core`) i strojenie `LEVELS`; wnioski w `docs/progress/balance-notes.md`.
+- Stan: 60 testów przechodzi, `npm run typecheck` czysty. Gałąź `feat/pisuar-chooser`, HEAD 891cc0c (+ commit z tym plikiem).
 
 ## Następny krok
-- Task 6: symulacja i balans (`packages/core/scripts/simulate.ts`, `docs/progress/balance-notes.md`, strojenie `config.ts`).
-- Potem Task 7–11 wg `docs/superpowers/plans/2026-11-20-pisuar-chooser-stages-1-6.md`. Etap 7 (leaderboard + zakupy) to osobny, jeszcze nienapisany plan.
+- Task 7, potem Task 8–11 wg `docs/superpowers/plans/2026-11-20-pisuar-chooser-stages-1-6.md`. Etap 7 (leaderboard + zakupy) to osobny, jeszcze nienapisany plan.
 
 ## Jak wznowić
 - Plan i specyfikacja: `docs/superpowers/plans/…stages-1-6.md`, `docs/superpowers/specs/…-design.md`.
