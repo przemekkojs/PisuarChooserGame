@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Board, Command, Game, GameEvent, GameState, Slot } from '@pisuar/core';
 import type { Session } from '../session';
 import { contains, hitIndex, urinalRects, type Rect } from './layout';
-import { formatTime, levelLabel } from './format';
+import { actualLoss, formatTime, levelLabel } from './format';
 import { skipInfo } from './perkInfo';
 import { playSound } from '../audio';
 import { onAppHidden } from '../lifecycle';
@@ -149,7 +149,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Balance before the command being dispatched (for the real loss shown). */
+  private balanceBefore = 0;
+
   private dispatch(cmd: Command): void {
+    this.balanceBefore = this.run.state.balance;
     const events = this.run.dispatch(cmd);
     this.afterEvents(this.run.state, events);
   }
@@ -181,7 +185,10 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'PickedWorse':
           playSound(this, 'pick_bad');
-          this.say(`Źle! −${ev.lost}`, PALETTE.textBad);
+          {
+            const lost = actualLoss(this.balanceBefore, s.balance);
+            this.say(lost > 0 ? `Źle! −${lost}` : 'Źle!', PALETTE.textBad);
+          }
           this.showResult(ev.best);
           break;
         case 'PickedOccupied':

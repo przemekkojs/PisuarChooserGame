@@ -17,7 +17,7 @@ export const LEVELS = {
   personEvery: 12,
   /** Smelly persons: first appear at smellyStart, +1 every smellyEvery levels. */
   smellyStart: 6,
-  smellyEvery: 5,
+  smellyEvery: 20,
   /** Wet floors: first appear at wetStart, +1 every wetEvery levels. */
   wetStart: 5,
   wetEvery: 5,

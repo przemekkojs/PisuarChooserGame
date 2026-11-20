@@ -33,3 +33,20 @@ Przed strojeniem (stare stałe): poziom 1 miał P=0.333 (za mało), poziom 30 P=
 - P(best) nie jest monotoniczne lokalnie (np. L12-L14 i L36-L37 wahają się o setne części) - liczy się wskaźnik trudności łączący P i czas.
 - Poziomy 1-2 mają ten sam wskaźnik P (różni je tylko czas).
 - Testy: `difficulty.test.ts` miał zakodowane stare wartości (4 pisuary na poz. 1, max 12) - zaktualizowane do nowych. Nowy `balance.test.ts` pilnuje niezmienników.
+
+## Poprawka mieszanki osób (po końcowym review)
+Problem: `smellyPersons = min(persons, growth(6, 5))` rosło co 5 poziomów, osoby co 12, więc od poziomu 6 KAŻDA osoba była śmierdząca (zwykli lokatorzy, kara 10%, nigdy się nie pojawiali).
+Zmiana: przy `persons >= 2` co najmniej jedna osoba zostaje zwykła (`smellyPersons <= persons - 1`); przy `persons == 1` bez zmian (jedna osoba, śmierdząca od poz. 6). Dodatkowo `smellyEvery` 5 -> 20, żeby zwykłych było >= 1/3 także wysoko (poz. 30: 1 z 3, poz. 40: 2 z 4). Cele balansu bez zmian (P(poz. 1) = 0.500, P(poz. 30) = 0.072, test monotoniczności zielony).
+
+| lvl | osoby | śmierdzące (przed -> po) | P(best) przed | P(best) po | trudność po |
+|---|---|---|---|---|---|
+| 1 | 1 | 0 | 0.500 | 0.500 | 2.00 |
+| 5 | 1 | 0 | 0.282 | 0.282 | 3.85 |
+| 10 | 1 | 1 | 0.178 | 0.178 | 6.84 |
+| 15 | 2 | 2 -> 1 | 0.138 | 0.125 | 11.11 |
+| 20 | 2 | 2 -> 1 | 0.107 | 0.100 | 16.13 |
+| 30 | 3 | 3 -> 2 | 0.072 | 0.072 | 33.17 |
+| 40 | 4 | 4 -> 2 | 0.071 | 0.071 | 63.64 |
+
+Tabela „Wybrane poziomy” wyżej pokazuje stare liczby śmierdzących dla poz. 15-40 (stan z czasu strojenia).
+

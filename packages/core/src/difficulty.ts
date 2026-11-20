@@ -30,7 +30,9 @@ export function levelParams(difficultyLevel: number): LevelParams {
     LEVELS.basePersons + Math.floor((level - 1) / LEVELS.personEvery),
   );
   const free = urinals - persons;
-  const smellyPersons = Math.min(persons, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
+  // With 2+ persons at least one stays plain, so a smelly/plain mix persists.
+  const smellyCap = persons >= 2 ? persons - 1 : persons;
+  const smellyPersons = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
   const pee = Math.min(free, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
   const wet = Math.min(free - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
   const raw = LEVELS.baseTimeMs - LEVELS.timeStepMs * (level - 1);

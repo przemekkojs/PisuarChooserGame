@@ -88,3 +88,34 @@ describe('contains', () => {
     expect(contains(r, 20, 19)).toBe(false);
   });
 });
+
+describe('hitIndex with 18 urinals', () => {
+  const rects = urinalRects(18, W, H);
+  const first = rects[0]!;
+  const last = rects[17]!;
+  const midY = first.y + first.h / 2;
+  const gap = rects[1]!.x - (first.x + first.w);
+  const PAD = 220;
+
+  it('maps taps in the gap between neighbours to the nearest slot', () => {
+    for (let i = 0; i < 17; i++) {
+      const edge = rects[i]!.x + rects[i]!.w;
+      // just left of the gap midpoint -> slot i, just right -> slot i + 1
+      expect(hitIndex(rects, edge + gap / 2 - 0.01, midY, PAD)).toBe(i);
+      expect(hitIndex(rects, edge + gap / 2 + 0.01, midY, PAD)).toBe(i + 1);
+    }
+  });
+
+  it('maps the extreme margins within half a gap to the outer slots', () => {
+    expect(hitIndex(rects, first.x - gap / 2 + 0.01, midY, PAD)).toBe(0);
+    expect(hitIndex(rects, last.x + last.w + gap / 2 - 0.01, midY, PAD)).toBe(17);
+  });
+
+  it('returns -1 beyond the outer zones and outside the vertical band', () => {
+    expect(hitIndex(rects, first.x - gap / 2 - 0.01, midY, PAD)).toBe(-1);
+    expect(hitIndex(rects, 0, midY, PAD)).toBe(-1);
+    expect(hitIndex(rects, W, midY, PAD)).toBe(-1);
+    expect(hitIndex(rects, first.x + 1, first.y - PAD - 1, PAD)).toBe(-1);
+    expect(hitIndex(rects, first.x + 1, first.y + first.h + PAD + 1, PAD)).toBe(-1);
+  });
+});

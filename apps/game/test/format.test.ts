@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTime, levelLabel } from '../src/scene/format';
+import { actualLoss, formatTime, levelLabel } from '../src/scene/format';
 
 describe('formatTime', () => {
   it('shows seconds with one decimal', () => {
@@ -22,5 +22,14 @@ describe('levelLabel', () => {
   it('shows the level the player is attempting (solved + 1)', () => {
     expect(levelLabel(0)).toBe('1');
     expect(levelLabel(9)).toBe('10');
+  });
+});
+
+describe('actualLoss', () => {
+  it('is the real balance drop, never negative', () => {
+    expect(actualLoss(3, 0)).toBe(3);
+    expect(actualLoss(20, 5)).toBe(15);
+    expect(actualLoss(0, 0)).toBe(0);
+    expect(actualLoss(5, 15)).toBe(0);
   });
 });

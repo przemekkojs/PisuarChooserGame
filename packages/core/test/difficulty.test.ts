@@ -51,3 +51,14 @@ describe('levelParams', () => {
     expect(startDifficultyLevel('hard')).toBe(15);
   });
 });
+
+describe('levelParams smelly mix', () => {
+  it('always keeps a plain person when there are two or more', () => {
+    for (let level = 1; level <= 300; level++) {
+      const p = levelParams(level);
+      expect(p.smellyPersons).toBeLessThanOrEqual(p.persons);
+      if (p.persons >= 2) expect(p.smellyPersons).toBeLessThan(p.persons);
+    }
+  });
+});
+

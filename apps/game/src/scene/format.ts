@@ -10,3 +10,8 @@ export function formatTime(ms: number): string {
 export function levelLabel(playerLevel: number): string {
   return String(playerLevel + 1);
 }
+
+/** Balance actually lost between two readings (never negative). */
+export function actualLoss(before: number, after: number): number {
+  return Math.max(0, before - after);
+}
