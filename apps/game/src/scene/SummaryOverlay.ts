@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { GameState } from '@pisuar/core';
 import { contains, type Rect } from './layout';
 import { continueInfo } from './perkInfo';
-import { makeText, outlinedRect, PALETTE } from './placeholders';
+import { hasTexture, makeText, outlinedRect, PALETTE } from './placeholders';
 
 /**
  * Ignore taps on the summary for this long after it opens, so the tap that
@@ -24,8 +24,9 @@ export interface SummaryHandlers {
 export class SummaryOverlay {
   private readonly root: Phaser.GameObjects.Container;
   private readonly panel: Phaser.GameObjects.Container;
-  private readonly pants: Phaser.GameObjects.Rectangle;
-  private readonly stain: Phaser.GameObjects.Rectangle;
+  /** Spreads over the pants: a stain rectangle (fallback) or the wet hero sprite. */
+  private readonly stain: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
+  private readonly spreadsInY: boolean;
   private readonly solvedText: Phaser.GameObjects.Text;
   private readonly recordText: Phaser.GameObjects.Text;
   private readonly continueBg: Phaser.GameObjects.Graphics;
@@ -44,15 +45,23 @@ export class SummaryOverlay {
     this.root.add(add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75));
     this.root.add(makeText(scene, width / 2, 240, 110, 'Zsikałeś się!').setColor(PALETTE.textBad));
 
-    // Placeholder hero: head, shirt, pants; a wet stain spreads over the pants.
     const cx = width / 2;
-    const outline = <T extends Phaser.GameObjects.Shape>(r: T): T =>
-      r.setStrokeStyle(6, PALETTE.outline) as T;
-    this.root.add(outline(add.circle(cx, 430, 80, PALETTE.hand)));
-    this.root.add(outline(add.rectangle(cx, 640, 260, 280, PALETTE.hero)));
-    this.pants = outline(add.rectangle(cx, 880, 260, 200, PALETTE.heroPants));
-    this.root.add(this.pants);
-    this.stain = add.rectangle(cx, 800, 150, 170, PALETTE.wet).setOrigin(0.5, 0);
+    if (hasTexture(scene, 'hero') && hasTexture(scene, 'hero_wet')) {
+      // Dry hero, then the wet one fades in over it while the lock runs.
+      const k = 1.5;
+      this.root.add(add.image(cx, 960, 'hero').setOrigin(0.5, 1).setScale(k));
+      this.stain = add.image(cx, 960, 'hero_wet').setOrigin(0.5, 1).setScale(k);
+      this.spreadsInY = false;
+    } else {
+      // Placeholder hero: head, shirt, pants; a wet stain spreads over the pants.
+      const outline = <T extends Phaser.GameObjects.Shape>(r: T): T =>
+        r.setStrokeStyle(6, PALETTE.outline) as T;
+      this.root.add(outline(add.circle(cx, 430, 80, PALETTE.hand)));
+      this.root.add(outline(add.rectangle(cx, 640, 260, 280, PALETTE.hero)));
+      this.root.add(outline(add.rectangle(cx, 880, 260, 200, PALETTE.heroPants)));
+      this.stain = add.rectangle(cx, 800, 150, 170, PALETTE.wet).setOrigin(0.5, 0);
+      this.spreadsInY = true;
+    }
     this.root.add(this.stain);
 
     this.panel = add.container(0, 0);
@@ -78,9 +87,14 @@ export class SummaryOverlay {
     this.lockedUntil = this.scene.time.now + SUMMARY_LOCK_MS;
     this.refresh(s);
     this.root.setVisible(true);
-    this.stain.setScale(1, 0).setAlpha(0.9);
     this.panel.setAlpha(0);
-    this.scene.tweens.add({ targets: this.stain, scaleY: 1, duration: SUMMARY_LOCK_MS, ease: 'Sine.easeOut' });
+    if (this.spreadsInY) {
+      this.stain.setScale(1, 0).setAlpha(0.9);
+      this.scene.tweens.add({ targets: this.stain, scaleY: 1, duration: SUMMARY_LOCK_MS, ease: 'Sine.easeOut' });
+    } else {
+      this.stain.setAlpha(0);
+      this.scene.tweens.add({ targets: this.stain, alpha: 1, duration: SUMMARY_LOCK_MS, ease: 'Sine.easeOut' });
+    }
     this.scene.tweens.add({
       targets: this.panel,
       alpha: 1,

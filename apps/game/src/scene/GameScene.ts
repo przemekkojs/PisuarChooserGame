@@ -1,10 +1,20 @@
 import Phaser from 'phaser';
-import type { Board, Command, Game, GameEvent, GameState } from '@pisuar/core';
+import type { Board, Command, Game, GameEvent, GameState, Slot } from '@pisuar/core';
 import type { Session } from '../session';
 import { contains, hitIndex, urinalRects, type Rect } from './layout';
 import { formatTime, levelLabel } from './format';
 import { skipInfo } from './perkInfo';
-import { drawDoor, drawSlot, makeText, outlinedRect, PALETTE } from './placeholders';
+import { playSound } from '../audio';
+import {
+  containImage,
+  drawDoor,
+  drawSlot,
+  hasTexture,
+  makeText,
+  outlinedRect,
+  PALETTE,
+  stretchImage,
+} from './placeholders';
 import { SummaryOverlay } from './SummaryOverlay';
 import type { StartSceneData } from './StartScene';
 
@@ -71,14 +81,25 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     this.add.rectangle(width / 2, height / 2, width, height, PALETTE.background);
-    this.add.rectangle(width / 2, height * 0.5, width, height * 0.7, PALETTE.wall);
+    if (hasTexture(this, 'bg_wall')) stretchImage(this, 'bg_wall', { x: 0, y: 0, w: width, h: height });
+    else this.add.rectangle(width / 2, height * 0.5, width, height * 0.7, PALETTE.wall);
+    if (hasTexture(this, 'bg_floor')) stretchImage(this, 'bg_floor', { x: 0, y: height - 640, w: width, h: 640 });
 
     this.board = this.add.container(0, 0);
     this.highlights = this.add.graphics();
     this.door = this.add.container(DOOR_RECT.x, DOOR_RECT.y);
-    const doorG = this.add.graphics();
-    drawDoor(doorG, DOOR_RECT.w, DOOR_RECT.h);
-    this.door.add(doorG);
+    if (hasTexture(this, 'door')) {
+      this.door.add(stretchImage(this, 'door', { x: 0, y: 0, w: DOOR_RECT.w, h: DOOR_RECT.h }));
+      if (hasTexture(this, 'hand')) {
+        this.door.add(
+          this.add.image(DOOR_RECT.w * 0.8, DOOR_RECT.h * 0.5, 'hand').setDisplaySize(260, 260),
+        );
+      }
+    } else {
+      const doorG = this.add.graphics();
+      drawDoor(doorG, DOOR_RECT.w, DOOR_RECT.h);
+      this.door.add(doorG);
+    }
 
     this.skipBg = this.add.graphics();
     this.skipText = makeText(this, SKIP_RECT.x + SKIP_RECT.w / 2, SKIP_RECT.y + SKIP_RECT.h / 2, 40);
@@ -152,27 +173,33 @@ export class GameScene extends Phaser.Scene {
           this.syncFromState(s);
           break;
         case 'DoorOpening':
+          playSound(this, 'door_open');
           this.openDoorAnim();
           break;
         case 'PickedBest':
+          playSound(this, 'pick_good');
           this.cameras.main.flash(200, 46, 204, 113);
           this.say('Dobrze!', PALETTE.textGood);
           this.showResult(ev.best);
           break;
         case 'PickedWorse':
+          playSound(this, 'pick_bad');
           this.say(`Źle! −${ev.lost}`, PALETTE.textBad);
           this.showResult(ev.best);
           break;
         case 'PickedOccupied':
+          playSound(this, 'pick_occupied');
           this.cameras.main.shake(200, 0.012);
           this.floatText(this.rects[ev.index], `−${formatTime(ev.penaltyMs)} s`);
           this.flashTimer();
           break;
         case 'TimedOut':
+          playSound(this, 'timeout');
           this.message.setAlpha(0);
           this.summary.show(s);
           break;
         case 'PerkBought':
+          playSound(this, 'perk');
           this.say(`−${ev.price}`, PALETTE.textDim);
           break;
         case 'NewRecord':
@@ -208,15 +235,34 @@ export class GameScene extends Phaser.Scene {
     this.rects = urinalRects(board.length, width, height);
     const g = this.add.graphics();
     this.board.add(g);
-    board.forEach((slot, i) => {
-      const r = this.rects[i]!;
+    board.forEach((slot, i) => this.drawSlotView(g, this.rects[i]!, slot));
+  }
+
+  /** One slot from textures where they exist, else the placeholder shapes. */
+  private drawSlotView(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): void {
+    const floorKey = slot.kind === 'free' && slot.floor !== 'clean' ? `floor_${slot.floor}` : '';
+    const personKey = slot.kind === 'person' ? (slot.smelly ? 'person_smelly' : 'person') : '';
+    const art =
+      hasTexture(this, 'urinal') &&
+      (floorKey === '' || hasTexture(this, floorKey)) &&
+      (personKey === '' || hasTexture(this, personKey));
+    if (!art) {
       drawSlot(g, r, slot);
       if (slot.kind === 'person') {
         const marker = makeText(this, r.x + r.w / 2, r.y + r.h * 0.35, Math.max(28, r.w * 0.6));
         marker.setText(slot.smelly ? 'X~' : 'X');
         this.board.add(marker);
       }
-    });
+      return;
+    }
+    const floorH = Math.max(24, r.h * 0.12);
+    const strip = { x: r.x - 4, y: r.y + r.h, w: r.w + 8, h: floorH };
+    if (floorKey) this.board.add(stretchImage(this, floorKey, strip));
+    else outlinedRect(g, strip, PALETTE.floor.clean, 6);
+    this.board.add(containImage(this, 'urinal', { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }));
+    if (personKey) {
+      this.board.add(containImage(this, personKey, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 }));
+    }
   }
 
   private refreshHud(s: Readonly<GameState>): void {

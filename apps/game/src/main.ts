@@ -4,6 +4,7 @@ import { noopPlatform } from './ports';
 import { createSession } from './session';
 import { createStorage, localStorageBackend } from './storage';
 import { GameScene } from './scene/GameScene';
+import { PreloadScene } from './scene/PreloadScene';
 import { StartScene, type StartSceneData } from './scene/StartScene';
 
 /**
@@ -30,6 +31,8 @@ async function boot(): Promise<void> {
 
   const data: StartSceneData = { session };
   phaser.scene.add('GameScene', GameScene, false);
-  phaser.scene.add('StartScene', StartScene, true, data);}
+  phaser.scene.add('StartScene', StartScene, false);
+  phaser.scene.add('PreloadScene', PreloadScene, true, data);
+}
 
 void boot();

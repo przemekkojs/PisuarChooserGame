@@ -97,3 +97,20 @@ export function drawDoor(g: Phaser.GameObjects.Graphics, w: number, h: number): 
     outlinedRect(g, f, PALETTE.hand, 12);
   }
 }
+
+/** True when the texture loaded (asset missing → callers fall back to shapes). */
+export function hasTexture(scene: Phaser.Scene, key: string): boolean {
+  return scene.textures.exists(key);
+}
+
+/** Image stretched to exactly fill the rect (top-left origin). */
+export function stretchImage(scene: Phaser.Scene, key: string, r: Rect): Phaser.GameObjects.Image {
+  return scene.add.image(r.x, r.y, key).setOrigin(0, 0).setDisplaySize(r.w, r.h);
+}
+
+/** Image scaled uniformly to fit inside the rect, centred horizontally, bottom-aligned. */
+export function containImage(scene: Phaser.Scene, key: string, r: Rect): Phaser.GameObjects.Image {
+  const img = scene.add.image(r.x + r.w / 2, r.y + r.h, key).setOrigin(0.5, 1);
+  const k = Math.min(r.w / img.width, r.h / img.height);
+  return img.setScale(k);
+}
