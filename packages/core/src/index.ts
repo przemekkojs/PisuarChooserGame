@@ -13,3 +13,5 @@ export { evaluatePick, timePenaltyMs, occupiedPenaltyMs } from './scoring';
 export type { PickKind } from './scoring';
 export { perkPrice } from './perks';
 export type { PerkType } from './perks';
+export { createGame } from './game';
+export type { Phase, Command, GameEvent, GameState, Game, GameOptions } from './game';
