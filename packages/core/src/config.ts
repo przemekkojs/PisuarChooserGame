@@ -31,3 +31,15 @@ export const LEVELS = {
   maxGenerateAttempts: 100,
   startLevels: { easy: 1, medium: 8, hard: 15 },
 } as const;
+
+/** Scoring constants. */
+export const SCORING = {
+  rewardBest: 10,
+  penaltyPerCost: 3,
+  maxPenalty: 15,
+  occupiedPct: 0.1,
+  smellyPct: 0.2,
+} as const;
+
+/** Base perk prices (doubled per use). */
+export const PERK_BASE = { skip: 10, continue: 15 } as const;

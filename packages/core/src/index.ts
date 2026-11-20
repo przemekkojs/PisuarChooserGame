@@ -8,3 +8,8 @@ export type { Rng } from './rng';
 export { startDifficultyLevel, levelParams } from './difficulty';
 export type { Difficulty, LevelParams } from './difficulty';
 export { generateBoard } from './generator';
+export { SCORING, PERK_BASE } from './config';
+export { evaluatePick, timePenaltyMs, occupiedPenaltyMs } from './scoring';
+export type { PickKind } from './scoring';
+export { perkPrice } from './perks';
+export type { PerkType } from './perks';
