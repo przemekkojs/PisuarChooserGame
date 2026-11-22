@@ -19,6 +19,11 @@
   - NIE sprawdzone na urządzeniu/emulatorze: uruchomienie APK, tap drzwi → plansza → wybór, wygląd pełnego ekranu i orientacja, zapis przez Preferences (saldo/rekord po ponownym uruchomieniu), porzucenie przebiegu po schowaniu aplikacji (`appStateChange`), przycisk Wstecz (zamyka aplikację), płynność 60 fps i dotyk.
 - Stan: 136 testów przechodzi (core 61, game 75), `npm run typecheck` czysty, `npm run build:android -w @pisuar/game` działa. Gałąź `feat/pisuar-chooser` (zob. `git log`).
 
+## Mechanika v2 (gałąź `feat/mechanics-v2`) — zadania 1–12 gotowe
+- Zrealizowane: model slotów i lokatorów (smelly/parent/child/gap/shy/splasher/outOfOrder), generator i `levelParams` v2, pauza + „Zakończ turę” (`endRun`), tryb poziomy, scena z modelami postaci, zapowiedziane zdarzenia dynamiczne (sprzątacz, wychodzący, spóźniony), strojenie. Spec: `docs/superpowers/specs/2026-11-22-mechanics-v2-design.md`; balans: `docs/progress/balance-notes.md`.
+- Podsumowanie po dobrowolnym „Zakończ turę” ma neutralny tytuł „Koniec tury” (bez animacji plamy); znaczniki zapowiedzi są czyszczone przy końcu poziomu/tury.
+- **NIE sprawdzone** (tylko urządzenie/emulator): orientacja pozioma w APK, dotyk, płynność 60 fps, pauza przy `appStateChange`, przycisk Wstecz. Ścieżka `Cancelled` w scenie też nie była oglądana.
+
 ## Następny krok
 - Doinstalować komponenty SDK, zbudować APK (`npm run apk -w @pisuar/game`), zainstalować ręcznie (`adb install -r …`) i przejść listę „NIE sprawdzone” z Task 11. Etapy 1–6 są wtedy gotowe.
 - Potem: osobny, jeszcze nienapisany plan etapu 7 (leaderboard + zakupy w aplikacji; porty w `ports.ts` gotowe). Przed publikacją w Play: potwierdzić `appId`, podnieść `targetSdk`.

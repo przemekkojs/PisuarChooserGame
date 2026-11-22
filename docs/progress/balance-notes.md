@@ -50,3 +50,29 @@ Zmiana: przy `persons >= 2` co najmniej jedna osoba zostaje zwykła (`smellyPers
 
 Tabela „Wybrane poziomy” wyżej pokazuje stare liczby śmierdzących dla poz. 15-40 (stan z czasu strojenia).
 
+
+## Mechanika v2 (Task 12)
+Symulacja (`npm run sim -w @pisuar/core`) NIE modeluje zdarzeń dynamicznych (sprzątacz, wychodzący, spóźniony) — mierzy tylko planszę startową poziomu, losowy wybór wśród wolnych pisuarów, 200 ziaren. Nowa kolumna `underOcc` = odsetek plansz z ≥1 efektem podłogi pod lokatorem.
+
+| lvl | pisuary | osoby | śmierdzące | mokre | siki | czas ms | P(best) | E[delta] | trudność | underOcc |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 3 | 1 | 0 | 0 | 0 | 15000 | 0.500 | +4.00 | 2.00 | 0.00 |
+| 5 | 5 | 2 | 1 | 0 | 0 | 13800 | 0.333 | +0.28 | 3.26 | 0.00 |
+| 10 | 7 | 2 | 1 | 0 | 1 | 12300 | 0.250 | -2.73 | 4.88 | 0.47 |
+| 13 | 9 | 3 | 1 | 0 | 1 | 11400 | 0.256 | -2.43 | 5.13 | 0.56 |
+| 15 | 10 | 4 | 1 | 1 | 1 | 10800 | 0.250 | -2.67 | 5.56 | 0.71 |
+| 20 | 12 | 4 | 1 | 0 | 2 | 9300 | 0.167 | -4.57 | 9.68 | 0.78 |
+| 30 | 17 | 6 | 2 | 0 | 3 | 6300 | 0.111 | -6.13 | 21.43 | 0.80 |
+| 40 | 18 | 6 | 2 | 0 | 3 | 3300 | 0.101 | -6.29 | 45.23 | 0.88 |
+
+Cele: P(poz. 1) = 0.500 (≥ 0.4), P(poz. 30) = 0.111 (≤ 0.2), trudność niemalejąca na 1..60 (tolerancja 2%), `underOcc` ≥ 0.45 na poziomach 10–40 (cel ≥ 0.30), `people ≥ wet + pee + 1` na 10–40 — wszystko w `balance.test.ts` (rozszerzonym o poziomy 1..60, brak NaN, efekty pod lokatorem).
+
+### Zmieniona stała
+- `outOfOrderEvery` 20 -> 52. Przy 18 pisuarach każdy kolejny zepsuty pisuar zmniejsza liczbę wolnych (P(trafienia) rośnie 0.111 -> 0.125), więc przeszkoda ułatwiała grę, a trudność spadała o ~10% na poziomie 49 (test 1..60 czerwony). Teraz zepsuty pisuar jest jeden (od poz. 9) do poz. 60; wartości pośrednie (26) psuły monotoniczność już na poz. 35.
+- Reszta stałych bez zmian (spełniają cele).
+
+### Efekty a limit (poziom 10)
+Na poz. 10 `effectCap = floor(2 osoby * 0.5) = 1` i cały limit zajmuje siki (mokra podłoga = 0; wet wraca na poz. 15–17 przy limicie 2, potem znika, bo siki zajmują cały limit: 2 na poz. 18–26, 3 od 27). Uznane za akceptowalne: siki to mocniejszy efekt (koszt 3 vs 1) i spec zakłada pee od poz. 10; mokre podłogi nadal pojawiają się przez chlapaczy (poz. 16+) i w poz. 6–9/15–17. Próba `effectShareOfPeople` 0.6 przywróciłaby wet wyżej, ale łamie testy budżetu (limit ≤ ludzie/2, spec rozdz. 6) — odrzucona. Jeśli granie pokaże, że brakuje mokrych podłóg wysoko, trzeba zmienić regułę limitu (nie stałą).
+
+### Para wcześniej niż poz. 13?
+Nie. Pierwszą parę blokuje reguła budżetu w `difficulty.ts` (`people ≥ 3` i ≥4 wolne po jej ustawieniu), a nie stała `unlock.pair`; zejście poniżej poz. 13 wymaga zmiany reguły (łagodniejsze progi łamały monotoniczność przy poz. 9/11 — zob. dziennik Task 7). Zgodne z specem (rozdz. 11).
