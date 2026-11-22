@@ -6,7 +6,7 @@ import { generateBoard } from './generator';
 import { createRng } from './rng';
 import { evaluatePick, occupiedPenaltyMs } from './scoring';
 import { perkPrice } from './perks';
-import { applyEvent, copyBoard, planEvents } from './events';
+import { applyEvent, copyBoard, planEvents, TELEGRAPH_MS } from './events';
 import type { ScheduledEvent } from './events';
 
 export type Phase = 'START' | 'DOOR_CLOSED' | 'PLAYING' | 'LEVEL_RESULT' | 'SUMMARY';
@@ -182,6 +182,12 @@ export function createGame(opts: GameOptions): Game {
       if (!ev.telegraphed && elapsed >= ev.telegraphAtMs) {
         ev.telegraphed = true;
         out.push({ type: 'Telegraphed', id: ev.id, kind: ev.kind, index: ev.index });
+        // A time jump (occupied-tap penalty, long tick) past applyAtMs must not
+        // skip the warning: the change is re-timed a full TELEGRAPH_MS later.
+        if (elapsed >= ev.applyAtMs) {
+          ev.applyAtMs = elapsed + TELEGRAPH_MS;
+          continue;
+        }
       }
       if (elapsed < ev.applyAtMs) continue;
       s.pending = s.pending.filter((p) => p !== ev);

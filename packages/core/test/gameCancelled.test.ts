@@ -21,9 +21,9 @@ describe('state machine: Cancelled', () => {
       const ev = g.state.pending[0];
       if (!ev) continue;
       const before = g.state.board;
-      const evs = g.dispatch({ type: 'tick', dtMs: ev.applyAtMs });
-      expect(evs.map((e) => e.type)).toEqual(['Telegraphed', 'Cancelled']);
-      expect(evs[1]).toEqual({ type: 'Cancelled', id: ev.id });
+      expect(g.dispatch({ type: 'tick', dtMs: ev.telegraphAtMs }).map((e) => e.type)).toEqual(['Telegraphed']);
+      const evs = g.dispatch({ type: 'tick', dtMs: ev.applyAtMs - ev.telegraphAtMs });
+      expect(evs).toEqual([{ type: 'Cancelled', id: ev.id }]);
       expect(g.state.board).toEqual(before);
       expect(g.state.pending).toEqual([]);
       return;

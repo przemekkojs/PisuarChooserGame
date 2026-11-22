@@ -692,9 +692,31 @@ describe('dynamic events (mop)', () => {
     expect(tickTo(g, ev.applyAtMs + 1000)).toEqual([]);
   });
 
-  it('a single long tick emits Telegraphed then Applied', () => {
+  it('a single long tick past applyAtMs only telegraphs and re-times the change TELEGRAPH_MS later', () => {
     const { g, ev } = withMop();
-    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+    expect(tickTo(g, ev.applyAtMs + 200).map((e) => e.type)).toEqual(['Telegraphed']);
+    expect(g.state.pending[0]!.applyAtMs).toBe(ev.applyAtMs + 200 + TELEGRAPH_MS);
+    expect(g.dispatch({ type: 'tick', dtMs: TELEGRAPH_MS - 100 })).toEqual([]);
+    expect(g.dispatch({ type: 'tick', dtMs: 100 }).map((e) => e.type)).toEqual(['Applied']);
+  });
+
+  it('an occupied-tap penalty jumping over the telegraph never applies a change without warning', () => {
+    const { g, ev } = withMop();
+    tickTo(g, ev.telegraphAtMs - 100);
+    const occupied = g.state.board.flatMap((s, i) => (s.occupant ? [i] : []));
+    const index = occupied.reduce((a, b) =>
+      occupiedPenaltyMs(g.state.board, b, g.state.levelTimeMs) > occupiedPenaltyMs(g.state.board, a, g.state.levelTimeMs) ? b : a,
+    );
+    const penaltyMs = occupiedPenaltyMs(g.state.board, index, g.state.levelTimeMs);
+    expect(penaltyMs).toBeGreaterThan(TELEGRAPH_MS + 100);
+    const evs = g.dispatch({ type: 'pickUrinal', index });
+    expect(evs.map((e) => e.type)).toEqual(['PickedOccupied', 'Telegraphed']);
+    const at = elapsed(g);
+    expect(g.state.pending[0]!.applyAtMs).toBe(at + TELEGRAPH_MS);
+    expect(g.state.pending[0]!.applyAtMs % 100).toBe(0);
+    expect(g.state.board[ev.index]!.floor).toBe('clean');
+    expect(g.dispatch({ type: 'tick', dtMs: TELEGRAPH_MS - 100 })).toEqual([]);
+    expect(g.dispatch({ type: 'tick', dtMs: 100 }).map((e) => e.type)).toEqual(['Applied']);
   });
 
   it('a tap during the telegraph window is judged on the board at tap time', () => {
@@ -812,14 +834,16 @@ describe('dynamic events (arrive, leave)', () => {
 
   it('Telegraphed then Applied for arrive; the new person is tappable as occupied', () => {
     const { g, ev } = find((g, e) => e.kind === 'arrive' && !!applyEvent(g.state.board, e, createRng(0), 24));
-    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+    expect(tickTo(g, ev.telegraphAtMs).map((e) => e.type)).toEqual(['Telegraphed']);
+    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Applied']);
     expect(g.state.board[ev.index]!.occupant).not.toBeNull();
     expect(g.dispatch({ type: 'pickUrinal', index: ev.index })[0]!.type).toBe('PickedOccupied');
   });
 
   it('Telegraphed then Applied for leave; the slot is pickable and judged with a wet floor', () => {
     const { g, ev } = find((g, e) => e.kind === 'leave' && !!applyEvent(g.state.board, e, createRng(0), 24));
-    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+    expect(tickTo(g, ev.telegraphAtMs).map((e) => e.type)).toEqual(['Telegraphed']);
+    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Applied']);
     expect(g.state.board[ev.index]).toEqual({ floor: 'wet', occupant: null });
     const expected = evaluatePick(g.state.board, ev.index);
     const evs = g.dispatch({ type: 'pickUrinal', index: ev.index });
