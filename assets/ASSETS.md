@@ -19,8 +19,8 @@ Wszystkie obecne pliki to **placeholdery** (proste SVG pisane skryptem `apps/gam
 | `floor_pee` | `assets/floor_pee.svg` | 200×60, SVG | Pas podłogi z żółtą kałużą | Jak wyżej; żółty = wyraźnie brudna podłoga. Czysta podłoga nie ma osobnego assetu (rysowana prostokątem). Placeholder. |
 | `person` | `assets/person.svg` | 160×420, SVG | Stojący człowiek (fioletowa koszulka) zasłaniający pisuar | Slot zajęty; skalowany proporcjonalnie do 80% szerokości i 75% wysokości slotu, wyrównany do dołu. Czytelny także przy szerokości ~35 px (18 pisuarów) — unikaj drobnych detali. Placeholder. |
 | `person_smelly` | `assets/person_smelly.svg` | 160×420, SVG | Człowiek zielony ze smugami zapachu | Zajęty slot „śmierdziela” (dodatkowo obniża atrakcyjność sąsiednich pisuarów). Musi się wyraźnie różnić od `person` samą sylwetką i kolorem. Placeholder. |
-| `bg_wall` | `assets/bg_wall.svg` | 1080×1920, SVG | Ściana toalety z kafelkami | Tło całego ekranu gry (rozciągane do 1080×1920). Niski kontrast, aby nie przeszkadzać planszy; bez przezroczystości. Placeholder. |
-| `bg_floor` | `assets/bg_floor.svg` | 1080×640, SVG | Podłoga z perspektywą (linie fug) | Dolne 640 px ekranu, pod rzędem pisuarów. Górna krawędź to listwa przypodłogowa. Placeholder. |
+| `bg_wall` | `assets/bg_wall.svg` | 1920×1080, SVG | Ściana toalety z kafelkami | Tło całego ekranu gry (rozciągane do 1920×1080). Niski kontrast, aby nie przeszkadzać planszy; bez przezroczystości. Placeholder. |
+| `bg_floor` | `assets/bg_floor.svg` | 1920×380, SVG | Podłoga z perspektywą (linie fug) | Dolne 380 px ekranu, pod rzędem pisuarów. Górna krawędź to listwa przypodłogowa. Placeholder. |
 | `hero` | `assets/hero.svg` | 220×420, SVG | Bohater w suchych spodniach | Ekran podsumowania („Zsikałeś się!”), skala 1,5, wyrównany do dołu (spód na y=960). Ten sam kadr i pozycja co `hero_wet`. Placeholder. |
 | `hero_wet` | `assets/hero_wet.svg` | 220×420, SVG | Ten sam bohater z mokrymi (niebieskimi) spodniami | Płynnie pojawia się na `hero` (600 ms) w animacji zsikania. Musi dokładnie pokrywać się z `hero`. Placeholder. |
 

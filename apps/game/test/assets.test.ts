@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { ASSET_MANIFEST } from '../src/assets';
+import { ASSET_MANIFEST, IMAGE_SIZES } from '../src/assets';
 
 const publicDir = fileURLToPath(new URL('../public/', import.meta.url));
 const assetsMd = readFileSync(fileURLToPath(new URL('../../../assets/ASSETS.md', import.meta.url)), 'utf8');
@@ -38,6 +38,20 @@ describe('asset manifest', () => {
       }
     });
   }
+
+  for (const [key, path] of Object.entries(ASSET_MANIFEST.images)) {
+    it(`IMAGE_SIZES for ${key} matches the SVG viewBox`, () => {
+      const text = readFileSync(resolve(publicDir, path), 'utf8');
+      const vb = /viewBox="0 0 (\d+) (\d+)"/.exec(text);
+      expect(vb).not.toBeNull();
+      expect(IMAGE_SIZES[key]).toEqual({ w: Number(vb![1]), h: Number(vb![2]) });
+    });
+  }
+
+  it('has a 1920x1080 wall and a 1920x380 floor', () => {
+    expect(IMAGE_SIZES.bg_wall).toEqual({ w: 1920, h: 1080 });
+    expect(IMAGE_SIZES.bg_floor).toEqual({ w: 1920, h: 380 });
+  });
 
   for (const [key, path] of Object.entries(ASSET_MANIFEST.sounds)) {
     it(`sound ${key} exists and is a valid WAV`, () => {

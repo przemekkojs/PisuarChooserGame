@@ -13,8 +13,8 @@ export const IMAGE_SIZES: Record<string, { w: number; h: number }> = {
   floor_pee: { w: 200, h: 60 },
   person: { w: 160, h: 420 },
   person_smelly: { w: 160, h: 420 },
-  bg_wall: { w: 1080, h: 1920 },
-  bg_floor: { w: 1080, h: 640 },
+  bg_wall: { w: 1920, h: 1080 },
+  bg_floor: { w: 1920, h: 380 },
   hero: { w: 220, h: 420 },
   hero_wet: { w: 220, h: 420 },
 };

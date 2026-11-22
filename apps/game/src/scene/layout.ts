@@ -8,14 +8,14 @@ export interface Rect {
 }
 
 /** Fraction of the width kept free on each side of the row. */
-const MARGIN_FRAC = 0.04;
+const MARGIN_FRAC = 0.02;
 /** Gap between neighbours as a fraction of the width. */
-const GAP_FRAC = 0.012;
+const GAP_FRAC = 0.004;
 /** Upper bound for a single urinal width (few urinals should not be huge). */
-const MAX_W_FRAC = 0.22;
+const MAX_W_FRAC = 0.2;
 /** Urinal height relative to its width, capped by MAX_H_FRAC of the height. */
 const ASPECT = 2.2;
-const MAX_H_FRAC = 0.3;
+const MAX_H_FRAC = 0.45;
 
 /**
  * A single row of `count` equal urinals, left to right, with equal gaps and

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { GAME_HEIGHT, GAME_WIDTH } from '../src/constants';
 import { contains, hitIndex, urinalRects } from '../src/scene/layout';
 
-const W = 1080;
-const H = 1920;
+const W = GAME_WIDTH;
+const H = GAME_HEIGHT;
 const EPS = 1e-6;
 
 describe('urinalRects', () => {
@@ -38,6 +39,16 @@ describe('urinalRects', () => {
       expect(left).toBeCloseTo(right);
     });
   }
+
+  it('uses the 1920x1080 landscape resolution', () => {
+    expect(W).toBe(1920);
+    expect(H).toBe(1080);
+  });
+
+  it('keeps 18 urinals at least 90 px wide and 3 urinals at most 22% of the width', () => {
+    for (const r of urinalRects(18, W, H)) expect(r.w).toBeGreaterThanOrEqual(90);
+    for (const r of urinalRects(3, W, H)) expect(r.w).toBeLessThanOrEqual(0.22 * W);
+  });
 
   it('gives equal widths to every urinal', () => {
     const rects = urinalRects(18, W, H);
@@ -77,6 +88,16 @@ describe('hitIndex', () => {
     expect(hitIndex(rects, W - 1, rects[0]!.y + 1, 0)).toBe(-1);
     expect(hitIndex([], 10, 10, 100)).toBe(-1);
   });
+});
+
+describe('hitIndex for every count', () => {
+  for (let n = 3; n <= 18; n++) {
+    it(`finds each of ${n} urinals by its centre and rejects a tap above the row`, () => {
+      const rs = urinalRects(n, W, H);
+      rs.forEach((r, i) => expect(hitIndex(rs, r.x + r.w / 2, r.y + r.h / 2, 220)).toBe(i));
+      expect(hitIndex(rs, rs[0]!.x + 1, rs[0]!.y - 221, 220)).toBe(-1);
+    });
+  }
 });
 
 describe('contains', () => {

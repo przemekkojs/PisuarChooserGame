@@ -10,9 +10,9 @@ export interface StartSceneData {
 }
 
 const BUTTONS: { d: Difficulty; label: string; rect: Rect }[] = [
-  { d: 'easy', label: 'Łatwy', rect: { x: 190, y: 720, w: 700, h: 230 } },
-  { d: 'medium', label: 'Średni', rect: { x: 190, y: 1010, w: 700, h: 230 } },
-  { d: 'hard', label: 'Trudny', rect: { x: 190, y: 1300, w: 700, h: 230 } },
+  { d: 'easy', label: 'Łatwy', rect: { x: 100, y: 620, w: 520, h: 260 } },
+  { d: 'medium', label: 'Średni', rect: { x: 700, y: 620, w: 520, h: 260 } },
+  { d: 'hard', label: 'Trudny', rect: { x: 1300, y: 620, w: 520, h: 260 } },
 ];
 
 /** Ignore taps briefly so the tap that left the previous screen cannot start a run. */
@@ -41,16 +41,16 @@ export class StartScene extends Phaser.Scene {
     this.lockedUntil = this.time.now + START_LOCK_MS;
 
     this.add.rectangle(width / 2, height / 2, width, height, PALETTE.background);
-    makeText(this, width / 2, 300, 120, 'Pisuar Chooser');
-    makeText(this, width / 2, 470, 56, `Punkty: ${this.session.getBalance()}`).setColor(PALETTE.textDim);
-    makeText(this, width / 2, 620, 64, 'Wybierz trudność');
+    makeText(this, width / 2, 200, 120, 'Pisuar Chooser');
+    makeText(this, width / 2, 360, 56, `Punkty: ${this.session.getBalance()}`).setColor(PALETTE.textDim);
+    makeText(this, width / 2, 500, 64, 'Wybierz trudność');
 
     const g = this.add.graphics();
     for (const b of BUTTONS) {
       outlinedRect(g, b.rect, PALETTE.button, 20);
       const cx = b.rect.x + b.rect.w / 2;
-      makeText(this, cx, b.rect.y + 85, 80, b.label);
-      makeText(this, cx, b.rect.y + 170, 48, `Rekord: ${records[b.d]}`).setColor(PALETTE.textDim);
+      makeText(this, cx, b.rect.y + 95, 80, b.label);
+      makeText(this, cx, b.rect.y + 195, 48, `Rekord: ${records[b.d]}`).setColor(PALETTE.textDim);
     }
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onTap(p.x, p.y));

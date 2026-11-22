@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { GameState } from '@pisuar/core';
+import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import { contains, type Rect } from './layout';
 import { continueInfo } from './perkInfo';
 import { hasTexture, makeText, outlinedRect, PALETTE } from './placeholders';
@@ -11,9 +12,14 @@ import { hasTexture, makeText, outlinedRect, PALETTE } from './placeholders';
  */
 export const SUMMARY_LOCK_MS = 600;
 
-const CONTINUE_RECT: Rect = { x: 190, y: 1300, w: 700, h: 150 };
-const OK_RECT: Rect = { x: 190, y: 1500, w: 700, h: 150 };
-const PANEL_RECT: Rect = { x: 140, y: 1000, w: 800, h: 720 };
+const PANEL_W = 1100;
+const PANEL_H = 540;
+const PANEL_RECT: Rect = { x: (GAME_WIDTH - PANEL_W) / 2, y: GAME_HEIGHT - PANEL_H - 40, w: PANEL_W, h: PANEL_H };
+const BTN_W = 460;
+const BTN_H = 130;
+const BTN_Y = PANEL_RECT.y + PANEL_H - BTN_H - 40;
+const CONTINUE_RECT: Rect = { x: GAME_WIDTH / 2 - BTN_W - 20, y: BTN_Y, w: BTN_W, h: BTN_H };
+const OK_RECT: Rect = { x: GAME_WIDTH / 2 + 20, y: BTN_Y, w: BTN_W, h: BTN_H };
 
 export interface SummaryHandlers {
   onContinue(): void;
@@ -43,23 +49,23 @@ export class SummaryOverlay {
     const add = scene.add;
     this.root = add.container(0, 0).setDepth(100).setVisible(false);
     this.root.add(add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75));
-    this.root.add(makeText(scene, width / 2, 240, 110, 'Zsikałeś się!').setColor(PALETTE.textBad));
+    this.root.add(makeText(scene, width / 2, 110, 100, 'Zsikałeś się!').setColor(PALETTE.textBad));
 
     const cx = width / 2;
     if (hasTexture(scene, 'hero') && hasTexture(scene, 'hero_wet')) {
       // Dry hero, then the wet one fades in over it while the lock runs.
-      const k = 1.5;
-      this.root.add(add.image(cx, 960, 'hero').setOrigin(0.5, 1).setScale(k));
-      this.stain = add.image(cx, 960, 'hero_wet').setOrigin(0.5, 1).setScale(k);
+      const k = 0.8;
+      this.root.add(add.image(cx, 500, 'hero').setOrigin(0.5, 1).setScale(k));
+      this.stain = add.image(cx, 500, 'hero_wet').setOrigin(0.5, 1).setScale(k);
       this.spreadsInY = false;
     } else {
       // Placeholder hero: head, shirt, pants; a wet stain spreads over the pants.
       const outline = <T extends Phaser.GameObjects.Shape>(r: T): T =>
         r.setStrokeStyle(6, PALETTE.outline) as T;
-      this.root.add(outline(add.circle(cx, 430, 80, PALETTE.hand)));
-      this.root.add(outline(add.rectangle(cx, 640, 260, 280, PALETTE.hero)));
-      this.root.add(outline(add.rectangle(cx, 880, 260, 200, PALETTE.heroPants)));
-      this.stain = add.rectangle(cx, 800, 150, 170, PALETTE.wet).setOrigin(0.5, 0);
+      this.root.add(outline(add.circle(cx, 230, 60, PALETTE.hand)));
+      this.root.add(outline(add.rectangle(cx, 380, 200, 200, PALETTE.hero)));
+      this.root.add(outline(add.rectangle(cx, 560, 200, 150, PALETTE.heroPants)));
+      this.stain = add.rectangle(cx, 500, 110, 120, PALETTE.wet).setOrigin(0.5, 0);
       this.spreadsInY = true;
     }
     this.root.add(this.stain);
@@ -70,10 +76,10 @@ export class SummaryOverlay {
     this.continueBg = add.graphics();
     const okG = add.graphics();
     outlinedRect(okG, OK_RECT, PALETTE.button);
-    this.solvedText = makeText(scene, width / 2, 1100, 64);
-    this.recordText = makeText(scene, width / 2, 1190, 56).setColor(PALETTE.textDim);
-    this.continueText = makeText(scene, width / 2, CONTINUE_RECT.y + CONTINUE_RECT.h / 2, 60);
-    const okText = makeText(scene, width / 2, OK_RECT.y + OK_RECT.h / 2, 64, 'OK');
+    this.solvedText = makeText(scene, width / 2, PANEL_RECT.y + 90, 64);
+    this.recordText = makeText(scene, width / 2, PANEL_RECT.y + 190, 56).setColor(PALETTE.textDim);
+    this.continueText = makeText(scene, CONTINUE_RECT.x + BTN_W / 2, CONTINUE_RECT.y + BTN_H / 2, 44);
+    const okText = makeText(scene, OK_RECT.x + BTN_W / 2, OK_RECT.y + BTN_H / 2, 64, 'OK');
     this.panel.add([panelG, this.solvedText, this.recordText, this.continueBg, this.continueText, okG, okText]);
     this.root.add(this.panel);
   }

@@ -46,7 +46,7 @@ Wynik (oczekiwany): `apps/game/android/app/build/outputs/apk/debug/app-debug.apk
 
 ## Konfiguracja aplikacji
 - `apps/game/capacitor.config.ts`: `appId: 'com.pisuar.chooser'` — **PLACEHOLDER, do potwierdzenia przed pierwszym wysłaniem do Google Play** (później nie da się go zmienić — inny identyfikator = nowa aplikacja), `appName: 'Pisuar Chooser'`, `webDir: 'dist'`.
-- `AndroidManifest.xml`: `android:screenOrientation="portrait"`.
+- `AndroidManifest.xml`: `android:screenOrientation="landscape"` (gra 1920×1080, tryb poziomy).
 - `styles.xml`: motywy `AppTheme.NoActionBar` i `AppTheme.NoActionBarLaunch` z `android:windowFullscreen=true` (ukryty pasek stanu; pasek nawigacji systemu zostaje — pełny tryb immersive wymagałby kodu w `MainActivity`).
 - Zapis: na urządzeniu `@capacitor/preferences` (`src/nativeStorage.ts`, `capacitorBackend`), w przeglądarce `localStorage`.
 - Schowanie aplikacji: `visibilitychange` oraz na Androidzie `App.addListener('appStateChange')` → porzucenie przebiegu i ekran startowy (`src/lifecycle.ts`, jeden handler w `GameScene`). Przycisk Wstecz: domyślnie zamyka aplikację (spec: bez pauzy, świeża gra po ponownym uruchomieniu).

@@ -78,22 +78,22 @@ ${wet ? `<path d="M40 300 L96 300 M124 300 L178 300" stroke="${C.wetLight}" stro
 
 const bgWall = () => {
   let tiles = '';
-  for (let y = 0; y < 1920; y += 120) {
-    for (let x = (y / 120) % 2 ? -60 : 0; x < 1080; x += 120) {
+  for (let y = 0; y < 1080; y += 120) {
+    for (let x = (y / 120) % 2 ? -60 : 0; x < 1920; x += 120) {
       tiles += `<rect x="${x + 3}" y="${y + 3}" width="114" height="114" rx="8" fill="${C.wall}" stroke="${C.tile}" stroke-width="4"/>`;
     }
   }
-  return svg(1080, 1920, `<rect width="1080" height="1920" fill="${C.wall}"/>\n${tiles}
-<rect width="1080" height="1920" fill="${C.outline}" opacity="0.18"/>
-<rect y="0" width="1080" height="40" fill="${C.wallLight}" opacity="0.5"/>`);
+  return svg(1920, 1080, `<rect width="1920" height="1080" fill="${C.wall}"/>\n${tiles}
+<rect width="1920" height="1080" fill="${C.outline}" opacity="0.18"/>
+<rect y="0" width="1920" height="40" fill="${C.wallLight}" opacity="0.5"/>`);
 };
 
 const bgFloor = () => {
   let lines = '';
-  for (let x = 0; x <= 1080; x += 135) lines += `<path d="M${540 + (x - 540) * 0.4} 0 L${x} 640" stroke="${C.outline}" stroke-width="4" opacity="0.5"/>`;
-  for (let i = 1; i < 5; i++) lines += `<path d="M0 ${i * i * 40} L1080 ${i * i * 40}" stroke="${C.outline}" stroke-width="4" opacity="0.5"/>`;
-  return svg(1080, 640, `<rect width="1080" height="640" fill="${C.floor}"/>\n${lines}
-<rect width="1080" height="14" fill="${C.outline}"/><rect y="14" width="1080" height="20" fill="#d3dfeb" opacity="0.7"/>`);
+  for (let x = 0; x <= 1920; x += 120) lines += `<path d="M${960 + (x - 960) * 0.4} 0 L${x} 380" stroke="${C.outline}" stroke-width="4" opacity="0.5"/>`;
+  for (let i = 1; i < 5; i++) lines += `<path d="M0 ${i * i * 22} L1920 ${i * i * 22}" stroke="${C.outline}" stroke-width="4" opacity="0.5"/>`;
+  return svg(1920, 380, `<rect width="1920" height="380" fill="${C.floor}"/>\n${lines}
+<rect width="1920" height="14" fill="${C.outline}"/><rect y="14" width="1920" height="20" fill="#d3dfeb" opacity="0.7"/>`);
 };
 
 const images = {

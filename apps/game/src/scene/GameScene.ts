@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Board, Command, Game, GameEvent, GameState, Slot } from '@pisuar/core';
 import type { Session } from '../session';
+import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import { contains, hitIndex, urinalRects, type Rect } from './layout';
 import { actualLoss, formatTime, levelLabel } from './format';
 import { skipInfo } from './perkInfo';
@@ -38,8 +39,11 @@ const MAX_TICK_MS = 100;
 /** Extra vertical tap area above/below the urinal row. */
 const HIT_PAD_Y = 220;
 
-const SKIP_RECT: Rect = { x: 32, y: 40, w: 440, h: 110 };
-const DOOR_RECT: Rect = { x: 140, y: 360, w: 800, h: 1240 };
+const FLOOR_H = 380;
+/** Bottom-right corner, clear of the centred HUD/timer and the urinal row. */
+const SKIP_RECT: Rect = { x: GAME_WIDTH - 32 - 460, y: GAME_HEIGHT - 32 - 110, w: 460, h: 110 };
+/** Centred door, same 700:1100 proportion as the `door` art. */
+const DOOR_RECT: Rect = { x: (GAME_WIDTH - 560) / 2, y: 150, w: 560, h: 880 };
 
 export class GameScene extends Phaser.Scene {
   private run!: Game;
@@ -78,7 +82,7 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, PALETTE.background);
     if (hasTexture(this, 'bg_wall')) stretchImage(this, 'bg_wall', { x: 0, y: 0, w: width, h: height });
     else this.add.rectangle(width / 2, height * 0.5, width, height * 0.7, PALETTE.wall);
-    if (hasTexture(this, 'bg_floor')) stretchImage(this, 'bg_floor', { x: 0, y: height - 640, w: width, h: 640 });
+    if (hasTexture(this, 'bg_floor')) stretchImage(this, 'bg_floor', { x: 0, y: height - FLOOR_H, w: width, h: FLOOR_H });
 
     this.board = this.add.container(0, 0);
     this.highlights = this.add.graphics();
@@ -87,7 +91,7 @@ export class GameScene extends Phaser.Scene {
       this.door.add(stretchImage(this, 'door', { x: 0, y: 0, w: DOOR_RECT.w, h: DOOR_RECT.h }));
       if (hasTexture(this, 'hand')) {
         this.door.add(
-          this.add.image(DOOR_RECT.w * 0.8, DOOR_RECT.h * 0.5, 'hand').setDisplaySize(260, 260),
+          this.add.image(DOOR_RECT.w * 0.8, DOOR_RECT.h * 0.5, 'hand').setDisplaySize(200, 200),
         );
       }
     } else {
@@ -98,9 +102,9 @@ export class GameScene extends Phaser.Scene {
 
     this.skipBg = this.add.graphics();
     this.skipText = makeText(this, SKIP_RECT.x + SKIP_RECT.w / 2, SKIP_RECT.y + SKIP_RECT.h / 2, 40);
-    this.hudText = makeText(this, width - 40, 95, 52).setOrigin(1, 0.5);
-    this.timerText = makeText(this, width / 2, 250, 120);
-    this.message = makeText(this, width / 2, 1720, 84).setAlpha(0);
+    this.hudText = makeText(this, width - 40, 60, 52).setOrigin(1, 0.5);
+    this.timerText = makeText(this, width / 2, 90, 100);
+    this.message = makeText(this, width / 2, height - 90, 84).setAlpha(0);
 
     this.summary = new SummaryOverlay(this, {
       onContinue: () => this.dispatch({ type: 'buyPerk', perk: 'continue' }),
