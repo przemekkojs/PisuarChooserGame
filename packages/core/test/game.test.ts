@@ -5,7 +5,7 @@ import { bestIndices } from '../src/cost';
 import { evaluatePick, occupiedPenaltyMs } from '../src/scoring';
 import { levelParams } from '../src/difficulty';
 import type { Difficulty } from '../src/difficulty';
-import { applyEvent } from '../src/events';
+import { applyEvent, TELEGRAPH_MS } from '../src/events';
 import type { ScheduledEvent } from '../src/events';
 import { createRng } from '../src/rng';
 
@@ -760,6 +760,28 @@ describe('dynamic events (mop)', () => {
     g.dispatch({ type: 'resume' });
     all.push(...tickTo(g, ev.applyAtMs));
     expect(all.map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+  });
+
+  it('a telegraph at elapsed 0 (short level) is emitted by openDoor itself, once, 1500 ms before Applied', () => {
+    let found = false;
+    for (let seed = 1; seed <= 200 && !found; seed++) {
+      const g = mk({ seed, balance: 1e12 });
+      g.dispatch({ type: 'startGame', difficulty: 'hard' });
+      while (g.state.difficultyLevel < 45) g.dispatch({ type: 'skipLevel' });
+      expect(g.state.levelTimeMs).toBe(3000);
+      const open = g.dispatch({ type: 'openDoor' });
+      const ev = g.state.pending[0];
+      if (!ev || ev.telegraphAtMs !== 0 || !applyEvent(g.state.board, ev, createRng(0))) continue;
+      found = true;
+      expect(ev.applyAtMs).toBe(TELEGRAPH_MS);
+      expect(open).toEqual([
+        { type: 'DoorOpening' },
+        { type: 'Telegraphed', id: ev.id, kind: 'mop', index: ev.index },
+      ]);
+      expect(g.dispatch({ type: 'tick', dtMs: TELEGRAPH_MS - 100 })).toEqual([]);
+      expect(g.dispatch({ type: 'tick', dtMs: 100 }).map((e) => e.type)).toEqual(['Applied']);
+    }
+    expect(found).toBe(true);
   });
 
   it('state.pending is a copy', () => {

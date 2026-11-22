@@ -218,7 +218,8 @@ export function createGame(opts: GameOptions): Game {
         s.timeLeftMs = s.levelTimeMs;
         tickRemainder = 0;
         s.pending = planEvents(s.board, levelParams(s.difficultyLevel), s.levelTimeMs, rng, nextEventId);
-        return [{ type: 'DoorOpening' }];
+        // A telegraph at elapsed 0 (short levels) goes out with the door, keeping the full TELEGRAPH_MS warning.
+        return [{ type: 'DoorOpening' }, ...advanceEvents()];
       }
       case 'pickUrinal':
         return pick(cmd.index);
