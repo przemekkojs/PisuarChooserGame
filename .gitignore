@@ -1,0 +1,6 @@
+node_modules
+dist
+apps/game/android/app/build
+.superpowers/
+*.jks
+*.keystore

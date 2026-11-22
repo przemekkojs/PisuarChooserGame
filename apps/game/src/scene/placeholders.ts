@@ -1,0 +1,180 @@
+import type Phaser from 'phaser';
+import type { OccupantKind, Slot } from '@pisuar/core';
+import type { Rect } from './layout';
+
+/** The single placeholder palette (cartoon style: flat fills + thick outlines). */
+export const PALETTE = {
+  background: 0x1b2030,
+  wall: 0x2c3550,
+  outline: 0x0b0d12,
+  door: 0x8a5a2b,
+  doorPanel: 0xa06a36,
+  hand: 0xf1c27d,
+  urinal: 0xeef2f5,
+  floor: { clean: 0x9fb3c8, wet: 0x3d8fd6, pee: 0xe3c21b },
+  person: 0x6b4fa0,
+  smelly: 0x4f8a2b,
+  parent: 0x1f8a8a,
+  child: 0xe84393,
+  shy: 0x5d6d9a,
+  splasher: 0x16a0d0,
+  trap: 0xc0392b,
+  outOfOrder: 0xf5d76e,
+  hero: 0xd35400,
+  heroPants: 0x2c3e50,
+  wet: 0x3d8fd6,
+  panel: 0x232a3d,
+  best: 0x2ecc71,
+  wrong: 0xe74c3c,
+  button: 0x34495e,
+  buttonDisabled: 0x555a60,
+  text: '#ffffff',
+  textDim: '#9aa3ad',
+  textGood: '#2ecc71',
+  textBad: '#ff5c5c',
+} as const;
+
+export const OUTLINE_PX = 6;
+
+const FONT = 'sans-serif';
+
+/** Centred, outlined placeholder text (shared by all scenes). */
+export function makeText(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  size: number,
+  msg = '',
+): Phaser.GameObjects.Text {
+  return scene.add
+    .text(x, y, msg, { fontFamily: FONT, fontSize: `${Math.round(size)}px`, color: PALETTE.text })
+    .setOrigin(0.5)
+    .setStroke('#0b0d12', Math.max(4, Math.round(size / 10)));
+}
+
+/** Rounded rectangle with the palette outline. */
+export function outlinedRect(
+  g: Phaser.GameObjects.Graphics,
+  r: Rect,
+  fill: number,
+  radius = 12,
+): void {
+  g.fillStyle(fill, 1);
+  g.fillRoundedRect(r.x, r.y, r.w, r.h, radius);
+  g.lineStyle(OUTLINE_PX, PALETTE.outline, 1);
+  g.strokeRoundedRect(r.x, r.y, r.w, r.h, radius);
+}
+
+const OCCUPANT_LABELS: Record<OccupantKind, string> = {
+  plain: 'X',
+  smelly: 'X~',
+  parent: 'R',
+  child: 'D',
+  gap: '⊘',
+  shy: 'S?',
+  splasher: 'Cl',
+  outOfOrder: '!',
+};
+
+/** Text marker of the placeholder (no-texture) rendering of an occupant kind. */
+export function occupantLabel(kind: OccupantKind): string {
+  return OCCUPANT_LABELS[kind];
+}
+
+/** Placeholder fill colour of an occupant kind (distinct per kind). */
+export function occupantColor(kind: OccupantKind): number {
+  switch (kind) {
+    case 'plain': return PALETTE.person;
+    case 'smelly': return PALETTE.smelly;
+    case 'parent': return PALETTE.parent;
+    case 'child': return PALETTE.child;
+    case 'gap': return PALETTE.trap;
+    case 'shy': return PALETTE.shy;
+    case 'splasher': return PALETTE.splasher;
+    case 'outOfOrder': return PALETTE.outOfOrder;
+  }
+}
+
+/** Texture key of an occupant kind, or '' when it has none (`gap` is drawn from shapes). */
+export function occupantTextureKey(kind: OccupantKind): string {
+  switch (kind) {
+    case 'plain': return 'person';
+    case 'smelly': return 'person_smelly';
+    case 'parent': return 'person_parent';
+    case 'child': return 'person_child';
+    case 'shy': return 'person_shy';
+    case 'splasher': return 'person_splasher';
+    case 'outOfOrder': return 'urinal_oos';
+    case 'gap': return '';
+  }
+}
+
+/** The 'forbidden' glyph of a gap slot: a trap-coloured ring with a slash. */
+export function drawForbidden(g: Phaser.GameObjects.Graphics, cx: number, cy: number, radius: number): void {
+  g.lineStyle(Math.max(OUTLINE_PX, radius * 0.28), PALETTE.trap, 1);
+  g.strokeCircle(cx, cy, radius);
+  g.lineBetween(cx - radius * 0.7, cy - radius * 0.7, cx + radius * 0.7, cy + radius * 0.7);
+}
+
+/**
+ * One board slot: a floor strip under the urinal, the urinal bowl, and for an
+ * occupied slot a person block (smelly persons get a different colour; the
+ * scene adds the text marker).
+ */
+export function drawSlot(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): void {
+  const floorH = Math.max(24, r.h * 0.12);
+  const floorFill = PALETTE.floor[slot.floor];
+  outlinedRect(g, { x: r.x - 4, y: r.y + r.h, w: r.w + 8, h: floorH }, floorFill, 6);
+  outlinedRect(g, { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }, PALETTE.urinal, r.w * 0.3);
+  const kind = slot.occupant?.kind;
+  if (!kind) return;
+  if (kind === 'gap') {
+    drawForbidden(g, r.x + r.w / 2, r.y + r.h * 0.6, r.w * 0.3);
+  } else if (kind === 'outOfOrder') {
+    outlinedRect(g, { x: r.x, y: r.y + r.h * 0.45, w: r.w, h: r.h * 0.3 }, occupantColor(kind), 8);
+  } else {
+    // The child is drawn clearly smaller than every other person.
+    const h = r.h * (kind === 'child' ? 0.42 : 0.75);
+    outlinedRect(g, { x: r.x + r.w * 0.1, y: r.y + r.h * 0.75 - h, w: r.w * 0.8, h }, occupantColor(kind), r.w * 0.2);
+  }
+}
+
+/**
+ * The closed door drawn at local origin (0,0) so a container placed at its
+ * left edge can be scaled on X to "swing" it open.
+ */
+export function drawDoor(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+  outlinedRect(g, { x: 0, y: 0, w, h }, PALETTE.door, 16);
+  const pad = w * 0.1;
+  const panelH = (h - pad * 3) / 2;
+  outlinedRect(g, { x: pad, y: pad, w: w - 2 * pad, h: panelH }, PALETTE.doorPanel, 10);
+  outlinedRect(g, { x: pad, y: pad * 2 + panelH, w: w - 2 * pad, h: panelH }, PALETTE.doorPanel, 10);
+  // Hand (a palm + fingers) near the handle side, hinting "tap to open".
+  const hx = w * 0.8;
+  const hy = h * 0.5;
+  g.fillStyle(PALETTE.hand, 1);
+  g.lineStyle(OUTLINE_PX, PALETTE.outline, 1);
+  g.fillCircle(hx, hy, 56);
+  g.strokeCircle(hx, hy, 56);
+  for (let i = 0; i < 4; i++) {
+    const f = { x: hx - 54 + i * 28, y: hy - 130, w: 24, h: 90 };
+    outlinedRect(g, f, PALETTE.hand, 12);
+  }
+}
+
+/** True when the texture loaded (asset missing → callers fall back to shapes). */
+export function hasTexture(scene: Phaser.Scene, key: string): boolean {
+  return scene.textures.exists(key);
+}
+
+/** Image stretched to exactly fill the rect (top-left origin). */
+export function stretchImage(scene: Phaser.Scene, key: string, r: Rect): Phaser.GameObjects.Image {
+  return scene.add.image(r.x, r.y, key).setOrigin(0, 0).setDisplaySize(r.w, r.h);
+}
+
+/** Image scaled uniformly to fit inside the rect, centred horizontally, bottom-aligned. */
+export function containImage(scene: Phaser.Scene, key: string, r: Rect): Phaser.GameObjects.Image {
+  const img = scene.add.image(r.x + r.w / 2, r.y + r.h, key).setOrigin(0.5, 1);
+  const k = Math.min(r.w / img.width, r.h / img.height);
+  return img.setScale(k);
+}

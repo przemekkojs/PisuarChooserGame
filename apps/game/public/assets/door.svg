@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="1100" viewBox="0 0 700 1100">
+
+<rect x="14" y="20" width="672" height="1068" rx="16" fill="#000000" opacity="0.3"/>
+<rect x="6" y="6" width="688" height="1070" rx="16" fill="#8a5a2b" stroke="#0b0d12" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="12" y="12" width="676" height="26" rx="10" fill="#b97d42"/>
+<rect x="70" y="80" width="560" height="400" rx="10" fill="#a06a36" stroke="#0b0d12" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="76" y="86" width="548" height="22" rx="6" fill="#b97d42"/>
+<rect x="70" y="560" width="560" height="440" rx="10" fill="#a06a36" stroke="#0b0d12" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="76" y="566" width="548" height="22" rx="6" fill="#b97d42"/>
+<circle cx="76" cy="530" r="22" fill="#5e3a17" stroke="#0b0d12" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="600" cy="530" r="30" fill="#d9b94a" stroke="#0b0d12" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="591" cy="521" r="9" fill="#fff3b0"/>
+</svg>

@@ -1,0 +1,87 @@
+import type { CostWeights, OccupantKind, OccupantSpec } from './types';
+
+/** Occupant parameters: single source of truth for cost and penalties. */
+export const OCCUPANTS: Record<OccupantKind, OccupantSpec> = {
+  plain: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  smelly: { weight: 3, decayBase: 0.5, penaltyPct: 0.2, isPerson: true },
+  parent: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  child: { weight: 2, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  gap: { weight: 0, decayBase: 0.5, penaltyPct: 0.2, isPerson: false },
+  shy: { weight: 1, decayBase: 0.8, penaltyPct: 0.1, isPerson: true },
+  splasher: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  outOfOrder: { weight: 0, decayBase: 0.5, penaltyPct: 0.1, isPerson: false },
+};
+
+export const DEFAULT_WEIGHTS: CostWeights = {
+  floor: { clean: 0, wet: 1, pee: 3 },
+  occupants: OCCUPANTS,
+  floorScentDecay: 0.5,
+};
+
+/** Tunable level-progression constants (consumed by levelParams). */
+export const LEVELS = {
+  baseUrinals: 3,
+  maxUrinals: 18,
+  /** +1 urinal every N levels. */
+  urinalEvery: 2,
+  /** People = clamp(round(urinals * peopleShare), 1, urinals - 2). */
+  peopleShare: 0.35,
+  /** Effect budget cap = floor(people * effectShareOfPeople); 2 wet per splasher are reserved first, then pee, then random wet. */
+  effectShareOfPeople: 0.5,
+  /** Probability an effect is placed under an occupant. */
+  effectUnderOccupantP: 0.5,
+  /** Smelly persons: first appear at smellyStart, +1 every smellyEvery levels. */
+  smellyStart: 5,
+  smellyEvery: 20,
+  /** Wet floors: first appear at wetStart, +1 every wetEvery levels. */
+  wetStart: 6,
+  wetEvery: 5,
+  /** Pee puddles: first appear at peeStart, +1 every peeEvery levels. */
+  peeStart: 10,
+  peeEvery: 8,
+  /**
+   * First level at which each mechanic can appear (smelly: see smellyStart).
+   * pair is only the earliest level; the budget rule in difficulty.ts (people>=3,
+   * >=4 free after the pair) makes the first pair appear at L13.
+   */
+  unlock: { outOfOrder: 9, pair: 8, shy: 12, splasher: 16 },
+  /** Shy persons: +1 every shyEvery levels after unlock. */
+  shyEvery: 20,
+  /** Splashers: +1 every splasherEvery levels after unlock. */
+  splasherEvery: 20,
+  /**
+   * Out-of-order urinals: +1 every outOfOrderEvery levels after unlock. 52 means
+   * effectively one out-of-order urinal from L9 on: each extra one removes a free
+   * slot, raising P(hit) (it eases the game) and breaking difficulty monotonicity.
+   */
+  outOfOrderEvery: 52,
+  baseTimeMs: 15000,
+  minTimeMs: 3000,
+  timeStepMs: 300,
+  /** Max random draws before the deterministic fallback board is used. */
+  maxGenerateAttempts: 100,
+  startLevels: { easy: 1, medium: 8, hard: 15 },
+  /** Dynamic (telegraphed) events during a level. */
+  dynamic: {
+    /** Probability that a level gets an event (rolled per event slot). */
+    chance: 0.5,
+    /** From this level up to two events per level (dynamicMax 2). */
+    secondEventLevel: 30,
+    /** First level at which each event kind can be planned. */
+    unlock: { mop: 14, leave: 20, arrive: 24 },
+    /** applyAtMs window as fractions of the level time. */
+    windows: { mop: [0.4, 0.6], arrive: [0.35, 0.65], leave: [0.4, 0.7] },
+    arriveSmellyLevel: 24,
+    arriveSmellyChance: 0.25,
+  },
+} as const;
+
+/** Scoring constants. */
+export const SCORING = {
+  rewardBest: 10,
+  penaltyPerCost: 3,
+  maxPenalty: 15,
+} as const;
+
+/** Base perk prices (doubled per use). */
+export const PERK_BASE = { skip: 10, continue: 15 } as const;

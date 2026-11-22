@@ -1,0 +1,29 @@
+{
+  "name": "@pisuar/game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:android": "vite build && cap sync android",
+    "apk": "npm run build:android && cd android && gradlew.bat assembleDebug",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/core": "^6.2.3",
+    "@capacitor/preferences": "^6.0.4",
+    "@pisuar/core": "*",
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.3",
+    "@types/node": "^20.19.43",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}
