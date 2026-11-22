@@ -45,6 +45,7 @@ export function levelParams(difficultyLevel: number): LevelParams {
     growth(level, LEVELS.unlock.outOfOrder, LEVELS.outOfOrderEvery),
   );
   // Pair = child + gap + parent (3 slots, 2 people); at least 4 slots stay free (2 is the hard minimum; 4 keeps pHit low enough for balance).
+  // Looser budgets (2-3 free) raise pHit and break the balance test's non-decreasing difficulty at L9/L11.
   const pairs: 0 | 1 =
     level >= LEVELS.unlock.pair && urinals >= 5 && people >= 3 && urinals - people - 1 - outOfOrder >= 4 ? 1 : 0;
   // Person subsets share one cap: pair members are never special, and with

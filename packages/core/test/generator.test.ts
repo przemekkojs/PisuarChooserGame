@@ -52,8 +52,7 @@ describe('generateBoard', () => {
     const p = levelParams(12);
     for (let seed = 1; seed <= 200; seed++) {
       const board = generateBoard(p, createRng(seed));
-      // child/parent are ordinary (non-special) persons
-      if (p.people >= 2) expect(board.some((s) => ['plain', 'child', 'parent'].includes(s.occupant?.kind ?? ''))).toBe(true);
+      if (p.people >= 2) expect(board.some((s) => s.occupant?.kind === 'plain')).toBe(true);
     }
   });
 });
@@ -125,11 +124,24 @@ describe('generateBoard pairs', () => {
     }
     expect(sides.size).toBe(2);
   });
-  it('falls back to plain persons when the pair does not fit', () => {
-    const p = { ...levelParams(20), urinals: 5, people: 3, outOfOrder: 0 };
+  it('has no pair where the budget is too small, and a pair from L13', () => {
+    expect(levelParams(7).pairs).toBe(0);
+    expect(levelParams(8).pairs).toBe(0);
+    expect(levelParams(13).pairs).toBe(1);
     for (let seed = 1; seed <= 50; seed++) {
-      const kinds = generateBoard({ ...p, pairs: 0 }, createRng(seed)).map((s) => s.occupant?.kind);
-      expect(kinds).not.toContain('gap');
+      const kinds = generateBoard(levelParams(8), createRng(seed)).map((s) => s.occupant?.kind);
+      for (const k of ['gap', 'child', 'parent']) expect(kinds).not.toContain(k);
+    }
+  });
+  it('counts child and parent as exactly 2 of people, gap not counted (L13..40)', () => {
+    for (let l = 13; l <= 40; l++) {
+      const p = levelParams(l);
+      if (p.pairs !== 1) continue;
+      const b = generateBoard(p, createRng(l));
+      const n = (k: string) => b.filter((s) => s.occupant?.kind === k).length;
+      expect(n('child') + n('parent')).toBe(2);
+      expect(n('gap')).toBe(1);
+      expect(b.filter((s) => s.occupant && !['outOfOrder', 'gap'].includes(s.occupant.kind))).toHaveLength(p.people);
     }
   });
   it('costs a free slot next to a child 1 more than next to a parent', () => {

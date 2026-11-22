@@ -78,6 +78,7 @@ function randomBoard(p: LevelParams, rng: Rng): Board | null {
   const occupants = occupantKinds(p);
   const pair = p.pairs === 1 ? ['child', 'gap', 'parent'] : [];
   // Pair members count as 2 people; the gap is outside the budget.
+  // Relies on occupantKinds order (specials, plain, outOfOrder): slicing out indices people-2..people-1 drops 2 plain persons.
   const rest = pair.length ? occupants.slice(0, p.people - 2).concat(occupants.slice(p.people)) : occupants;
   const kinds = shuffle(
     [...rest.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - rest.length - pair.length).fill(null)],

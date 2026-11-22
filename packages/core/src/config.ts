@@ -40,6 +40,7 @@ export const LEVELS = {
   peeStart: 10,
   peeEvery: 8,
   /** First level at which each mechanic can appear (smelly: see smellyStart). */
+  /** pair is only the earliest level; the budget rule in difficulty.ts (people>=3, >=4 free after the pair) makes the first pair appear at L13. */
   unlock: { outOfOrder: 9, pair: 8, shy: 12, splasher: 16 },
   /** Shy persons: +1 every shyEvery levels after unlock. */
   shyEvery: 20,
