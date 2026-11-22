@@ -54,6 +54,19 @@ export const LEVELS = {
   /** Max random draws before the deterministic fallback board is used. */
   maxGenerateAttempts: 100,
   startLevels: { easy: 1, medium: 8, hard: 15 },
+  /** Dynamic (telegraphed) events during a level. */
+  dynamic: {
+    /** Probability that a level gets an event (rolled per event slot). */
+    chance: 0.5,
+    /** From this level up to two events per level (dynamicMax 2). */
+    secondEventLevel: 30,
+    /** First level at which each event kind can be planned. */
+    unlock: { mop: 14, leave: 20, arrive: 24 },
+    /** applyAtMs window as fractions of the level time. */
+    windows: { mop: [0.4, 0.6], arrive: [0.35, 0.65], leave: [0.4, 0.7] },
+    arriveSmellyLevel: 24,
+    arriveSmellyChance: 0.25,
+  },
 } as const;
 
 /** Scoring constants. */

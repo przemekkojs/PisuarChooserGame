@@ -7,7 +7,7 @@ import type { Board, CostWeights, Floor, OccupantKind, Slot } from './types';
 const EPSILON = 1e-9;
 
 /** True when at least 2 free slots exist and two of them differ in cost. */
-function isValid(board: Board, w: CostWeights): boolean {
+export function isValidBoard(board: Board, w: CostWeights = DEFAULT_WEIGHTS): boolean {
   const costs: number[] = [];
   board.forEach((s, i) => {
     if (!s.occupant) costs.push(urinalCost(board, i, w));
@@ -120,7 +120,7 @@ export function generateBoard(
 ): Board {
   for (let attempt = 0; attempt < LEVELS.maxGenerateAttempts; attempt++) {
     const board = randomBoard(params, rng);
-    if (board && isValid(board, w)) return board;
+    if (board && isValidBoard(board, w)) return board;
   }
   return fallbackBoard(params);
 }

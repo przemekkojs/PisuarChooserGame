@@ -4,6 +4,9 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export type DynamicKind = 'mop' | 'arrive' | 'leave';
 
+/** All dynamic kinds, in unlock order. */
+const DYNAMIC_KINDS: readonly DynamicKind[] = ['mop', 'leave', 'arrive'];
+
 export interface LevelParams {
   urinals: number;
   timeMs: number;
@@ -20,7 +23,7 @@ export interface LevelParams {
   /** Total floor-effect budget (including wet from splashers). */
   wet: number;
   pee: number;
-  /** Unlocked dynamic events (empty until later tasks). */
+  /** Unlocked dynamic event kinds. */
   dynamic: DynamicKind[];
   dynamicMax: 1 | 2;
 }
@@ -76,7 +79,7 @@ export function levelParams(difficultyLevel: number): LevelParams {
     outOfOrder,
     wet,
     pee,
-    dynamic: [],
-    dynamicMax: 1,
+    dynamic: DYNAMIC_KINDS.filter((k) => level >= LEVELS.dynamic.unlock[k]),
+    dynamicMax: level >= LEVELS.dynamic.secondEventLevel ? 2 : 1,
   };
 }

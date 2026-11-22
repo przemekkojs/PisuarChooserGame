@@ -1,11 +1,13 @@
 import type { Board } from './types';
-import type { Difficulty } from './difficulty';
+import type { Difficulty, DynamicKind } from './difficulty';
 import type { PerkType } from './perks';
 import { levelParams, startDifficultyLevel } from './difficulty';
 import { generateBoard } from './generator';
 import { createRng } from './rng';
 import { evaluatePick, occupiedPenaltyMs } from './scoring';
 import { perkPrice } from './perks';
+import { applyEvent, copyBoard, planEvents } from './events';
+import type { ScheduledEvent } from './events';
 
 export type Phase = 'START' | 'DOOR_CLOSED' | 'PLAYING' | 'LEVEL_RESULT' | 'SUMMARY';
 
@@ -34,7 +36,10 @@ export type GameEvent =
   | { type: 'NewRecord'; difficulty: Difficulty; level: number }
   | { type: 'Paused' }
   | { type: 'Resumed' }
-  | { type: 'RunEnded' };
+  | { type: 'RunEnded' }
+  | { type: 'Telegraphed'; id: number; kind: DynamicKind; index: number }
+  | { type: 'Applied'; id: number; kind: DynamicKind; index: number; board: Board }
+  | { type: 'Cancelled'; id: number };
 
 export interface GameState {
   phase: Phase;
@@ -55,6 +60,8 @@ export interface GameState {
   paused: boolean;
   /** True when the run ended by endRun (no Continue perk offered). */
   endedByPlayer: boolean;
+  /** Dynamic events of the current level not applied yet, sorted by applyAtMs. */
+  pending: ScheduledEvent[];
 }
 
 export interface Game {
@@ -70,8 +77,6 @@ export interface GameOptions {
 }
 
 const TIMER_STEP_MS = 100;
-
-const copyBoard = (b: Board): Board => b.map((s) => ({ ...s, occupant: s.occupant && { ...s.occupant } }));
 
 export function createGame(opts: GameOptions): Game {
   const rng = createRng(opts.seed);
@@ -89,7 +94,10 @@ export function createGame(opts: GameOptions): Game {
     record: records.easy,
     paused: false,
     endedByPlayer: false,
+    pending: [],
   };
+  let lastEventId = 0;
+  const nextEventId = (): number => ++lastEventId;
   /** Sub-100 ms time accumulated by tick, not yet shown in timeLeftMs. */
   let tickRemainder = 0;
 
@@ -100,6 +108,7 @@ export function createGame(opts: GameOptions): Game {
     s.levelTimeMs = params.timeMs;
     s.timeLeftMs = params.timeMs;
     tickRemainder = 0;
+    s.pending = [];
     s.phase = 'DOOR_CLOSED';
     return { type: 'LevelStarted', board: copyBoard(s.board), timeMs: params.timeMs };
   }
@@ -107,6 +116,7 @@ export function createGame(opts: GameOptions): Game {
   function timeOut(): GameEvent {
     s.timeLeftMs = 0;
     tickRemainder = 0;
+    s.pending = [];
     s.phase = 'SUMMARY';
     return { type: 'TimedOut' };
   }
@@ -132,7 +142,7 @@ export function createGame(opts: GameOptions): Game {
       const penaltyMs = occupiedPenaltyMs(s.board, index, s.levelTimeMs);
       const ev: GameEvent[] = [{ type: 'PickedOccupied', index, penaltyMs }];
       s.timeLeftMs -= penaltyMs;
-      if (s.timeLeftMs <= 0) ev.push(timeOut());
+      ev.push(...(s.timeLeftMs <= 0 ? [timeOut()] : advanceEvents()));
       return ev;
     }
     const { kind, delta, best } = evaluatePick(s.board, index);
@@ -140,6 +150,7 @@ export function createGame(opts: GameOptions): Game {
     const ev: GameEvent[] =
       kind === 'best' ? [{ type: 'PickedBest', best }] : [{ type: 'PickedWorse', best, lost: -delta }];
     s.playerLevel += 1;
+    s.pending = [];
     s.phase = 'LEVEL_RESULT';
     if (s.playerLevel > s.record) {
       s.record = s.playerLevel;
@@ -157,7 +168,32 @@ export function createGame(opts: GameOptions): Game {
     if (steps === 0) return [];
     tickRemainder -= steps * TIMER_STEP_MS;
     s.timeLeftMs -= steps * TIMER_STEP_MS;
-    return s.timeLeftMs <= 0 ? [timeOut()] : [];
+    return s.timeLeftMs <= 0 ? [timeOut()] : advanceEvents();
+  }
+
+  /**
+   * Telegraphs and applies pending events whose time has come (elapsed since
+   * the door opened). Called after every time change while PLAYING.
+   */
+  function advanceEvents(): GameEvent[] {
+    const elapsed = s.levelTimeMs - s.timeLeftMs;
+    const out: GameEvent[] = [];
+    for (const ev of [...s.pending]) {
+      if (!ev.telegraphed && elapsed >= ev.telegraphAtMs) {
+        ev.telegraphed = true;
+        out.push({ type: 'Telegraphed', id: ev.id, kind: ev.kind, index: ev.index });
+      }
+      if (elapsed < ev.applyAtMs) continue;
+      s.pending = s.pending.filter((p) => p !== ev);
+      const next = applyEvent(s.board, ev, rng);
+      if (next) {
+        s.board = next;
+        out.push({ type: 'Applied', id: ev.id, kind: ev.kind, index: ev.index, board: copyBoard(next) });
+      } else {
+        out.push({ type: 'Cancelled', id: ev.id });
+      }
+    }
+    return out;
   }
 
   /** Commands that still work while paused. */
@@ -181,6 +217,7 @@ export function createGame(opts: GameOptions): Game {
         s.phase = 'PLAYING';
         s.timeLeftMs = s.levelTimeMs;
         tickRemainder = 0;
+        s.pending = planEvents(s.board, levelParams(s.difficultyLevel), s.levelTimeMs, rng, nextEventId);
         return [{ type: 'DoorOpening' }];
       }
       case 'pickUrinal':
@@ -214,6 +251,7 @@ export function createGame(opts: GameOptions): Game {
         s.paused = false;
         s.endedByPlayer = true;
         tickRemainder = 0;
+        s.pending = [];
         s.phase = 'SUMMARY';
         return [{ type: 'RunEnded' }];
       default:
@@ -223,7 +261,12 @@ export function createGame(opts: GameOptions): Game {
 
   return {
     get state(): Readonly<GameState> {
-      return { ...s, board: copyBoard(s.board), perkUses: { ...s.perkUses } };
+      return {
+        ...s,
+        board: copyBoard(s.board),
+        perkUses: { ...s.perkUses },
+        pending: s.pending.map((e) => ({ ...e })),
+      };
     },
     dispatch,
   };

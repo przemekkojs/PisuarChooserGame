@@ -5,6 +5,9 @@ import { bestIndices } from '../src/cost';
 import { evaluatePick, occupiedPenaltyMs } from '../src/scoring';
 import { levelParams } from '../src/difficulty';
 import type { Difficulty } from '../src/difficulty';
+import { applyEvent } from '../src/events';
+import type { ScheduledEvent } from '../src/events';
+import { createRng } from '../src/rng';
 
 const NO_RECORDS: Record<Difficulty, number> = { easy: 0, medium: 0, hard: 0 };
 
@@ -642,5 +645,129 @@ describe('pickUrinal on gap, child and parent', () => {
       }
     }
     expect([...seen].sort()).toEqual(['child', 'gap', 'parent']);
+  });
+});
+
+describe('dynamic events (mop)', () => {
+  /** Hard run (level 15, mop unlocked) whose first level has one mop that will apply. */
+  function withMop(balance = 0): { g: Game; ev: ScheduledEvent } {
+    for (let seed = 1; seed <= 500; seed++) {
+      const g = mk({ seed, balance });
+      g.dispatch({ type: 'startGame', difficulty: 'hard' });
+      g.dispatch({ type: 'openDoor' });
+      const ev = g.state.pending[0];
+      if (ev && applyEvent(g.state.board, ev, createRng(0))) return { g, ev };
+    }
+    throw new Error('no seed with a mop');
+  }
+
+  const elapsed = (g: Game) => g.state.levelTimeMs - g.state.timeLeftMs;
+  const tickTo = (g: Game, ms: number) => g.dispatch({ type: 'tick', dtMs: ms - elapsed(g) });
+  const hasCancelled = (evs: GameEvent[]) => evs.some((e) => e.type === 'Cancelled');
+
+  it('plans one mop after openDoor at level >= 14 and none below', () => {
+    const { g, ev } = withMop();
+    expect(g.state.pending).toHaveLength(1);
+    expect(ev.kind).toBe('mop');
+    expect(ev.telegraphed).toBe(false);
+    for (let seed = 1; seed <= 30; seed++) {
+      const e = mk({ seed });
+      e.dispatch({ type: 'startGame', difficulty: 'easy' });
+      e.dispatch({ type: 'openDoor' });
+      expect(e.state.pending).toEqual([]);
+    }
+  });
+
+  it('telegraphs once at telegraphAtMs, then applies at applyAtMs', () => {
+    const { g, ev } = withMop();
+    expect(tickTo(g, ev.telegraphAtMs - 100)).toEqual([]);
+    expect(tickTo(g, ev.telegraphAtMs)).toEqual([{ type: 'Telegraphed', id: ev.id, kind: 'mop', index: ev.index }]);
+    expect(g.state.pending[0]!.telegraphed).toBe(true);
+    expect(tickTo(g, ev.telegraphAtMs + 100)).toEqual([]);
+    expect(g.state.board[ev.index]!.floor).toBe('clean');
+    const applied = tickTo(g, ev.applyAtMs);
+    expect(applied).toEqual([{ type: 'Applied', id: ev.id, kind: 'mop', index: ev.index, board: g.state.board }]);
+    expect(g.state.board[ev.index]!.floor).toBe('wet');
+    expect(g.state.pending).toEqual([]);
+    expect(tickTo(g, ev.applyAtMs + 1000)).toEqual([]);
+  });
+
+  it('a single long tick emits Telegraphed then Applied', () => {
+    const { g, ev } = withMop();
+    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+  });
+
+  it('a tap during the telegraph window is judged on the board at tap time', () => {
+    const { g, ev } = withMop();
+    tickTo(g, ev.telegraphAtMs);
+    const before = g.state.board;
+    const expected = evaluatePick(before, ev.index);
+    const evs = g.dispatch({ type: 'pickUrinal', index: ev.index });
+    expect(evs[0]).toEqual(
+      expected.kind === 'best'
+        ? { type: 'PickedBest', best: expected.best }
+        : { type: 'PickedWorse', best: expected.best, lost: -expected.delta },
+    );
+    expect(g.state.board).toEqual(before);
+    expect(g.state.pending).toEqual([]);
+  });
+
+  it('a free pick, nextLevel, skipLevel, endRun and timeout clear pending without Cancelled', () => {
+    const picked = withMop().g;
+    const p = picked.dispatch({ type: 'pickUrinal', index: bestIndex(picked) });
+    expect(picked.state.pending).toEqual([]);
+    expect(hasCancelled(p)).toBe(false);
+    expect(hasCancelled(picked.dispatch({ type: 'nextLevel' }))).toBe(false);
+    expect(picked.state.pending).toEqual([]);
+
+    const skipped = withMop(1000).g;
+    expect(hasCancelled(skipped.dispatch({ type: 'skipLevel' }))).toBe(false);
+    expect(skipped.state.pending).toEqual([]);
+
+    const ended = withMop().g;
+    expect(ended.dispatch({ type: 'endRun' })).toEqual([{ type: 'RunEnded' }]);
+    expect(ended.state.pending).toEqual([]);
+
+    const timed = withMop().g;
+    expect(timed.dispatch({ type: 'tick', dtMs: 1e6 })).toEqual([{ type: 'TimedOut' }]);
+    expect(timed.state.pending).toEqual([]);
+  });
+
+  it('the occupied-tap time penalty advances events like tick does', () => {
+    const { g, ev } = withMop();
+    expect(tickTo(g, ev.applyAtMs - 500).map((e) => e.type)).toEqual(['Telegraphed']);
+    const index = occupiedIndex(g);
+    const penaltyMs = occupiedPenaltyMs(g.state.board, index, g.state.levelTimeMs);
+    expect(penaltyMs).toBeGreaterThanOrEqual(500);
+    const evs = g.dispatch({ type: 'pickUrinal', index });
+    expect(evs.map((e) => e.type)).toEqual(['PickedOccupied', 'Applied']);
+    expect(g.state.board[ev.index]!.floor).toBe('wet');
+    expect(g.state.pending).toEqual([]);
+  });
+
+  it('events freeze while paused and Telegraphed never repeats after resume', () => {
+    const { g, ev } = withMop();
+    tickTo(g, ev.telegraphAtMs - 100);
+    g.dispatch({ type: 'pause' });
+    expect(g.dispatch({ type: 'tick', dtMs: 10000 })).toEqual([]);
+    expect(g.state.pending).toEqual([ev]);
+    g.dispatch({ type: 'resume' });
+    const all: GameEvent[] = [...g.dispatch({ type: 'tick', dtMs: 100 })];
+    expect(all.map((e) => e.type)).toEqual(['Telegraphed']);
+    g.dispatch({ type: 'pause' });
+    expect(g.dispatch({ type: 'tick', dtMs: 10000 })).toEqual([]);
+    expect(g.state.board[ev.index]!.floor).toBe('clean');
+    g.dispatch({ type: 'resume' });
+    all.push(...tickTo(g, ev.applyAtMs));
+    expect(all.map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+  });
+
+  it('state.pending is a copy', () => {
+    const { g } = withMop();
+    const snap = g.state;
+    snap.pending[0]!.telegraphed = true;
+    snap.pending.length = 0;
+    expect(g.state.pending).toHaveLength(1);
+    expect(g.state.pending[0]!.telegraphed).toBe(false);
   });
 });
