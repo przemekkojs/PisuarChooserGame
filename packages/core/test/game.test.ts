@@ -620,3 +620,27 @@ describe('pause, resume and endRun', () => {
     expect(g.state.endedByPlayer).toBe(false);
   });
 });
+
+describe('pickUrinal on gap, child and parent', () => {
+  it('gap costs 20% and child/parent 10% as PickedOccupied', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 40 && seen.size < 3; seed++) {
+      const g = mk({ seed });
+      g.dispatch({ type: 'startGame', difficulty: 'hard' });
+      g.dispatch({ type: 'openDoor' });
+      const board = g.state.board;
+      const time = g.state.levelTimeMs;
+      for (const kind of ['gap', 'child', 'parent'] as const) {
+        const index = board.findIndex((s) => s.occupant?.kind === kind);
+        if (index < 0 || seen.has(kind)) continue;
+        seen.add(kind);
+        const pct = kind === 'gap' ? 0.2 : 0.1;
+        const penaltyMs = Math.floor((time * pct) / 100) * 100;
+        expect(g.dispatch({ type: 'pickUrinal', index })).toEqual([{ type: 'PickedOccupied', index, penaltyMs }]);
+        expect(g.state.phase).toBe('PLAYING');
+        break;
+      }
+    }
+    expect([...seen].sort()).toEqual(['child', 'gap', 'parent']);
+  });
+});

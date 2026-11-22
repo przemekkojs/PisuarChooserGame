@@ -40,10 +40,17 @@ export function levelParams(difficultyLevel: number): LevelParams {
     LEVELS.baseUrinals + Math.floor((level - 1) / LEVELS.urinalEvery),
   );
   const people = Math.min(urinals - 2, Math.max(1, Math.round(urinals * LEVELS.peopleShare)));
-  // With 2+ people at least one stays plain, so a smelly/plain mix persists.
-  const smellyCap = people >= 2 ? people - 1 : people;
+  const outOfOrder = Math.min(
+    urinals - 2 - people,
+    growth(level, LEVELS.unlock.outOfOrder, LEVELS.outOfOrderEvery),
+  );
+  // Pair = child + gap + parent (3 slots, 2 people); at least 4 slots stay free (2 is the hard minimum; 4 keeps pHit low enough for balance).
+  const pairs: 0 | 1 =
+    level >= LEVELS.unlock.pair && urinals >= 5 && people >= 3 && urinals - people - 1 - outOfOrder >= 4 ? 1 : 0;
+  // Person subsets share one cap: pair members are never special, and with
+  // 2+ people a plain one stays so a smelly/plain mix persists.
+  const smellyCap = pairs ? people - 2 : people >= 2 ? people - 1 : people;
   const smelly = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
-  // Person subsets share one cap so a plain person always remains.
   const shy = Math.min(smellyCap - smelly, growth(level, LEVELS.unlock.shy, LEVELS.shyEvery));
   const effectCap = Math.floor(people * LEVELS.effectShareOfPeople);
   // A splasher wets both neighbours, so it needs two effects from the budget.
@@ -55,10 +62,6 @@ export function levelParams(difficultyLevel: number): LevelParams {
   const pee = Math.min(effectCap, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
   const wetWanted = Math.min(effectCap - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
   const wet = Math.max(wetWanted, 2 * splasher - pee);
-  const outOfOrder = Math.min(
-    urinals - 2 - people,
-    growth(level, LEVELS.unlock.outOfOrder, LEVELS.outOfOrderEvery),
-  );
   const raw = LEVELS.baseTimeMs - LEVELS.timeStepMs * (level - 1);
   const timeMs = Math.max(LEVELS.minTimeMs, Math.round(raw / 100) * 100);
   return {
@@ -68,7 +71,7 @@ export function levelParams(difficultyLevel: number): LevelParams {
     smelly,
     shy,
     splasher,
-    pairs: 0,
+    pairs,
     outOfOrder,
     wet,
     pee,

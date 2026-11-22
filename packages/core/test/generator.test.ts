@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseBoard } from './helpers';
 import { bestIndices, createRng, evaluatePick, generateBoard, levelParams, urinalCost } from '../src';
 
 function freeCosts(board: ReturnType<typeof generateBoard>): number[] {
@@ -12,7 +13,7 @@ describe('generateBoard', () => {
       for (let seed = 1; seed <= 200; seed++) {
         const board = generateBoard(params, createRng(seed));
         expect(board).toHaveLength(params.urinals);
-        expect(board.filter((s) => s.occupant && s.occupant.kind !== 'outOfOrder')).toHaveLength(params.people);
+        expect(board.filter((s) => s.occupant && s.occupant.kind !== 'outOfOrder' && s.occupant.kind !== 'gap')).toHaveLength(params.people);
         expect(board.filter((s) => s.floor !== 'clean').length).toBeLessThanOrEqual(params.wet + params.pee);
         const costs = freeCosts(board);
         expect(costs.length).toBeGreaterThanOrEqual(2);
@@ -51,15 +52,16 @@ describe('generateBoard', () => {
     const p = levelParams(12);
     for (let seed = 1; seed <= 200; seed++) {
       const board = generateBoard(p, createRng(seed));
-      if (p.people >= 2) expect(board.some((s) => s.occupant?.kind === 'plain')).toBe(true);
+      // child/parent are ordinary (non-special) persons
+      if (p.people >= 2) expect(board.some((s) => ['plain', 'child', 'parent'].includes(s.occupant?.kind ?? ''))).toBe(true);
     }
   });
 });
 
 describe('generateBoard v2 occupants', () => {
   const count = (b: ReturnType<typeof generateBoard>, kind: string) => b.filter((s) => s.occupant?.kind === kind).length;
-  it('places shy, splasher and outOfOrder per params (level 20)', () => {
-    const p = levelParams(20);
+  it('places shy, splasher and outOfOrder per params (level 24)', () => {
+    const p = levelParams(24);
     expect(p.shy).toBeGreaterThan(0);
     expect(p.splasher).toBeGreaterThan(0);
     expect(p.outOfOrder).toBeGreaterThan(0);
@@ -103,5 +105,34 @@ describe('generateBoard v2 occupants', () => {
     const r = evaluatePick(b, i);
     expect(r.kind).toBe('occupied');
     expect(r.delta).toBe(0);
+  });
+});
+
+describe('generateBoard pairs', () => {
+  it('places exactly one adjacent child-gap-parent triple, random side (level 20)', () => {
+    const p = levelParams(20);
+    expect(p.pairs).toBe(1);
+    const sides = new Set<string>();
+    for (let seed = 1; seed <= 200; seed++) {
+      const kinds = generateBoard(p, createRng(seed)).map((s) => s.occupant?.kind ?? '-');
+      expect(kinds.filter((k) => k === 'gap')).toHaveLength(1);
+      expect(kinds.filter((k) => k === 'child')).toHaveLength(1);
+      expect(kinds.filter((k) => k === 'parent')).toHaveLength(1);
+      const g = kinds.indexOf('gap');
+      const triple = `${kinds[g - 1]},${kinds[g + 1]}`;
+      expect(['child,parent', 'parent,child']).toContain(triple);
+      sides.add(triple);
+    }
+    expect(sides.size).toBe(2);
+  });
+  it('falls back to plain persons when the pair does not fit', () => {
+    const p = { ...levelParams(20), urinals: 5, people: 3, outOfOrder: 0 };
+    for (let seed = 1; seed <= 50; seed++) {
+      const kinds = generateBoard({ ...p, pairs: 0 }, createRng(seed)).map((s) => s.occupant?.kind);
+      expect(kinds).not.toContain('gap');
+    }
+  });
+  it('costs a free slot next to a child 1 more than next to a parent', () => {
+    expect(urinalCost(parseBoard('C _'), 1) - urinalCost(parseBoard('P _'), 1)).toBeCloseTo(1);
   });
 });

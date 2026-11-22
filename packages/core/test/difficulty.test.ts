@@ -102,3 +102,20 @@ describe('levelParams v2 unlocks', () => {
     expect(p.outOfOrder).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('levelParams pairs', () => {
+  it('unlocks pairs at level 8 when the budget fits', () => {
+    for (let l = 1; l <= 200; l++) {
+      const p = levelParams(l);
+      if (l < 8) expect(p.pairs).toBe(0);
+      if (p.pairs === 1) {
+        expect(p.urinals).toBeGreaterThanOrEqual(5);
+        expect(p.people).toBeGreaterThanOrEqual(3);
+        // pair takes 3 slots (2 people + gap); at least 2 stay free
+        expect(p.urinals - (p.people + 1) - p.outOfOrder).toBeGreaterThanOrEqual(4);
+        expect(p.shy + p.splasher + p.smelly).toBeLessThanOrEqual(p.people - 2);
+      }
+    }
+    expect(levelParams(13).pairs).toBe(1);
+  });
+});

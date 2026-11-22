@@ -76,10 +76,17 @@ function applyRandomFloors(slots: Slot[], budget: Floor[], rng: Rng): void {
 
 function randomBoard(p: LevelParams, rng: Rng): Board | null {
   const occupants = occupantKinds(p);
+  const pair = p.pairs === 1 ? ['child', 'gap', 'parent'] : [];
+  // Pair members count as 2 people; the gap is outside the budget.
+  const rest = pair.length ? occupants.slice(0, p.people - 2).concat(occupants.slice(p.people)) : occupants;
   const kinds = shuffle(
-    [...occupants.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - occupants.length).fill(null)],
+    [...rest.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - rest.length - pair.length).fill(null)],
     rng,
   );
+  if (pair.length) {
+    if (rng.next() < 0.5) pair.reverse();
+    kinds.splice(rng.int(0, kinds.length), 0, ...(pair as OccupantKind[]));
+  }
   const slots: Slot[] = kinds.map((k) => ({ floor: 'clean', occupant: k ? { kind: k } : null }));
   const budget = effectBudget(p);
   if (!applySplasherFloors(slots, budget)) return null;
