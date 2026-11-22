@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { Slot } from '@pisuar/core';
+import type { OccupantKind, Slot } from '@pisuar/core';
 import type { Rect } from './layout';
 
 /** The single placeholder palette (cartoon style: flat fills + thick outlines). */
@@ -14,6 +14,12 @@ export const PALETTE = {
   floor: { clean: 0x9fb3c8, wet: 0x3d8fd6, pee: 0xe3c21b },
   person: 0x6b4fa0,
   smelly: 0x4f8a2b,
+  parent: 0x1f8a8a,
+  child: 0xe84393,
+  shy: 0x5d6d9a,
+  splasher: 0x16a0d0,
+  trap: 0xc0392b,
+  outOfOrder: 0xf5d76e,
   hero: 0xd35400,
   heroPants: 0x2c3e50,
   wet: 0x3d8fd6,
@@ -59,6 +65,57 @@ export function outlinedRect(
   g.strokeRoundedRect(r.x, r.y, r.w, r.h, radius);
 }
 
+const OCCUPANT_LABELS: Record<OccupantKind, string> = {
+  plain: 'X',
+  smelly: 'X~',
+  parent: 'R',
+  child: 'D',
+  gap: '⊘',
+  shy: 'S?',
+  splasher: 'Cl',
+  outOfOrder: '!',
+};
+
+/** Text marker of the placeholder (no-texture) rendering of an occupant kind. */
+export function occupantLabel(kind: OccupantKind): string {
+  return OCCUPANT_LABELS[kind];
+}
+
+/** Placeholder fill colour of an occupant kind (distinct per kind). */
+export function occupantColor(kind: OccupantKind): number {
+  switch (kind) {
+    case 'plain': return PALETTE.person;
+    case 'smelly': return PALETTE.smelly;
+    case 'parent': return PALETTE.parent;
+    case 'child': return PALETTE.child;
+    case 'gap': return PALETTE.trap;
+    case 'shy': return PALETTE.shy;
+    case 'splasher': return PALETTE.splasher;
+    case 'outOfOrder': return PALETTE.outOfOrder;
+  }
+}
+
+/** Texture key of an occupant kind, or '' when it has none (`gap` is drawn from shapes). */
+export function occupantTextureKey(kind: OccupantKind): string {
+  switch (kind) {
+    case 'plain': return 'person';
+    case 'smelly': return 'person_smelly';
+    case 'parent': return 'person_parent';
+    case 'child': return 'person_child';
+    case 'shy': return 'person_shy';
+    case 'splasher': return 'person_splasher';
+    case 'outOfOrder': return 'urinal_oos';
+    case 'gap': return '';
+  }
+}
+
+/** The 'forbidden' glyph of a gap slot: a trap-coloured ring with a slash. */
+export function drawForbidden(g: Phaser.GameObjects.Graphics, cx: number, cy: number, radius: number): void {
+  g.lineStyle(Math.max(OUTLINE_PX, radius * 0.28), PALETTE.trap, 1);
+  g.strokeCircle(cx, cy, radius);
+  g.lineBetween(cx - radius * 0.7, cy - radius * 0.7, cx + radius * 0.7, cy + radius * 0.7);
+}
+
 /**
  * One board slot: a floor strip under the urinal, the urinal bowl, and for an
  * occupied slot a person block (smelly persons get a different colour; the
@@ -69,9 +126,16 @@ export function drawSlot(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): v
   const floorFill = PALETTE.floor[slot.floor];
   outlinedRect(g, { x: r.x - 4, y: r.y + r.h, w: r.w + 8, h: floorH }, floorFill, 6);
   outlinedRect(g, { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }, PALETTE.urinal, r.w * 0.3);
-  if (slot.occupant) {
-    const fill = slot.occupant.kind === 'smelly' ? PALETTE.smelly : PALETTE.person;
-    outlinedRect(g, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 }, fill, r.w * 0.2);
+  const kind = slot.occupant?.kind;
+  if (!kind) return;
+  if (kind === 'gap') {
+    drawForbidden(g, r.x + r.w / 2, r.y + r.h * 0.6, r.w * 0.3);
+  } else if (kind === 'outOfOrder') {
+    outlinedRect(g, { x: r.x, y: r.y + r.h * 0.45, w: r.w, h: r.h * 0.3 }, occupantColor(kind), 8);
+  } else {
+    // The child is drawn clearly smaller than every other person.
+    const h = r.h * (kind === 'child' ? 0.42 : 0.75);
+    outlinedRect(g, { x: r.x + r.w * 0.1, y: r.y + r.h * 0.75 - h, w: r.w * 0.8, h }, occupantColor(kind), r.w * 0.2);
   }
 }
 

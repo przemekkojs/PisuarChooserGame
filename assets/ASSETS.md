@@ -12,17 +12,24 @@ Wszystkie obecne pliki to **placeholdery** (proste SVG pisane skryptem `apps/gam
 
 | Klucz | Plik | Rozmiar / format | Co przedstawia | Użycie w grze i uwagi dla grafika |
 |---|---|---|---|---|
-| `door` | `assets/door.svg` | 700×1100, SVG | Zamknięte drewnowe drzwi z dwoma płycinami i klamką | Ekran „drzwi zamknięte” nad planszą; skalowane do 800×1240 i „otwierane” skalowaniem w osi X (zawias po lewej, więc lewa krawędź musi być na krawędzi pliku). Placeholder. |
-| `hand` | `assets/hand.svg` | 220×220, SVG | Dłoń z palcami do góry (podpowiedź „tapnij”) | Wyświetlana ok. 260×260 na drzwiach, po prawej stronie, na środku wysokości. Przezroczyste tło. Placeholder. |
+| `door` | `assets/door.svg` | 700×1100, SVG | Zamknięte drewnowe drzwi z dwoma płycinami i klamką | Ekran „drzwi zamknięte” nad planszą; skalowane do 560×880 (`DOOR_RECT` w `GameScene`) i „otwierane” skalowaniem w osi X (zawias po lewej, więc lewa krawędź musi być na krawędzi pliku). Placeholder. |
+| `hand` | `assets/hand.svg` | 220×220, SVG | Dłoń z palcami do góry (podpowiedź „tapnij”) | Wyświetlana ok. 200×200 na drzwiach, po prawej stronie, na środku wysokości. Przezroczyste tło. Placeholder. |
 | `urinal` | `assets/urinal.svg` | 160×280, SVG | Pisuar z przodu (miska z połyskiem) | Jeden na slot; skalowany proporcjonalnie do dolnych 65% pola slotu, wyrównany do dołu. Zostaw ok. 10 px marginesu na cień. Placeholder. |
 | `floor_wet` | `assets/floor_wet.svg` | 200×60, SVG | Pas mokrej podłogi (niebieski) pod pisuarem | Rozciągany do paska pod pisuarem; wskazuje mokrą podłogę (gorsza jakość pisuaru). Placeholder. |
 | `floor_pee` | `assets/floor_pee.svg` | 200×60, SVG | Pas podłogi z żółtą kałużą | Jak wyżej; żółty = wyraźnie brudna podłoga. Czysta podłoga nie ma osobnego assetu (rysowana prostokątem). Placeholder. |
 | `person` | `assets/person.svg` | 160×420, SVG | Stojący człowiek (fioletowa koszulka) zasłaniający pisuar | Slot zajęty; skalowany proporcjonalnie do 80% szerokości i 75% wysokości slotu, wyrównany do dołu. Czytelny także przy szerokości ~35 px (18 pisuarów) — unikaj drobnych detali. Placeholder. |
 | `person_smelly` | `assets/person_smelly.svg` | 160×420, SVG | Człowiek zielony ze smugami zapachu | Zajęty slot „śmierdziela” (dodatkowo obniża atrakcyjność sąsiednich pisuarów). Musi się wyraźnie różnić od `person` samą sylwetką i kolorem. Placeholder. |
+| `person_child` | `assets/person_child.svg` | 160×420, SVG | Dziecko: niska, różowa postać z czapką (ok. 55% wysokości dorosłego) | Slot zajęty przez dziecko (para rodzic–dziecko). Musi być wyraźnie mniejsze od `person_parent` i w innym kolorze niż `person`/`person_smelly`. Placeholder. |
+| `person_parent` | `assets/person_parent.svg` | 160×420, SVG | Rodzic: turkusowa postać z krawatem | Slot zajęty przez rodzica (stoi obok dziecka). Kolor inny niż `person`/`person_smelly`. Placeholder. |
+| `person_shy` | `assets/person_shy.svg` | 160×420, SVG | Nieśmiały: niebieskoszara postać zasłaniająca twarz dłońmi | Slot zajęty przez nieśmiałego (jego obecność zniechęca do sąsiednich pisuarów). Placeholder. |
+| `person_splasher` | `assets/person_splasher.svg` | 160×420, SVG | Chlapacz: błękitna postać z kroplami wody wokół | Slot zajęty przez chlapacza (moczy sąsiednią podłogę). Placeholder. |
+| `urinal_oos` | `assets/urinal_oos.svg` | 160×280, SVG | Pisuar z czerwonym krzyżem na żółtej tabliczce „nieczynny” | Slot nieczynny: rysowany zamiast `urinal`, bez osoby. Skalowany jak `urinal`. Placeholder. |
 | `bg_wall` | `assets/bg_wall.svg` | 1920×1080, SVG | Ściana toalety z kafelkami | Tło całego ekranu gry (rozciągane do 1920×1080). Niski kontrast, aby nie przeszkadzać planszy; bez przezroczystości. Placeholder. |
 | `bg_floor` | `assets/bg_floor.svg` | 1920×380, SVG | Podłoga z perspektywą (linie fug) | Dolne 380 px ekranu, pod rzędem pisuarów. Górna krawędź to listwa przypodłogowa. Placeholder. |
-| `hero` | `assets/hero.svg` | 220×420, SVG | Bohater w suchych spodniach | Ekran podsumowania („Zsikałeś się!”), skala 1,5, wyrównany do dołu (spód na y=960). Ten sam kadr i pozycja co `hero_wet`. Placeholder. |
+| `hero` | `assets/hero.svg` | 220×420, SVG | Bohater w suchych spodniach | Ekran podsumowania („Zsikałeś się!”), skala 0,8, wyrównany do dołu (spód na y=500, `SummaryOverlay`). Ten sam kadr i pozycja co `hero_wet`. Placeholder. |
 | `hero_wet` | `assets/hero_wet.svg` | 220×420, SVG | Ten sam bohater z mokrymi (niebieskimi) spodniami | Płynnie pojawia się na `hero` (600 ms) w animacji zsikania. Musi dokładnie pokrywać się z `hero`. Placeholder. |
+
+Uwaga: slot typu `gap` (pułapka — wygląda na wolny pisuar) nie ma osobnego pliku; jest rysowany w `scene/placeholders.ts` jako zwykły `urinal` z czerwonym symbolem „zakaz”.
 
 ## Dźwięki
 

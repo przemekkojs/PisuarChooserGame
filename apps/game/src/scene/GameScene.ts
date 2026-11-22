@@ -11,9 +11,12 @@ import { onAppHidden, onBackButton } from '../lifecycle';
 import {
   containImage,
   drawDoor,
+  drawForbidden,
   drawSlot,
   hasTexture,
   makeText,
+  occupantLabel,
+  occupantTextureKey,
   outlinedRect,
   PALETTE,
   stretchImage,
@@ -315,16 +318,19 @@ export class GameScene extends Phaser.Scene {
   /** One slot from textures where they exist, else the placeholder shapes. */
   private drawSlotView(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): void {
     const floorKey = slot.floor !== 'clean' ? `floor_${slot.floor}` : '';
-    const personKey = slot.occupant ? (slot.occupant.kind === 'smelly' ? 'person_smelly' : 'person') : '';
+    const kind = slot.occupant?.kind;
+    const personKey = kind ? occupantTextureKey(kind) : '';
+    const oos = kind === 'outOfOrder';
+    const baseKey = oos ? 'urinal_oos' : 'urinal';
     const art =
-      hasTexture(this, 'urinal') &&
+      hasTexture(this, baseKey) &&
       (floorKey === '' || hasTexture(this, floorKey)) &&
       (personKey === '' || hasTexture(this, personKey));
     if (!art) {
       drawSlot(g, r, slot);
-      if (slot.occupant) {
+      if (kind) {
         const marker = makeText(this, r.x + r.w / 2, r.y + r.h * 0.35, Math.max(28, r.w * 0.6));
-        marker.setText(slot.occupant.kind === 'smelly' ? 'X~' : 'X');
+        marker.setText(occupantLabel(kind));
         this.board.add(marker);
       }
       return;
@@ -333,8 +339,13 @@ export class GameScene extends Phaser.Scene {
     const strip = { x: r.x - 4, y: r.y + r.h, w: r.w + 8, h: floorH };
     if (floorKey) this.board.add(stretchImage(this, floorKey, strip));
     else outlinedRect(g, strip, PALETTE.floor.clean, 6);
-    this.board.add(containImage(this, 'urinal', { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }));
-    if (personKey) {
+    this.board.add(containImage(this, baseKey, { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }));
+    if (kind === 'gap') {
+      // A free-looking urinal with a trap-coloured 'forbidden' glyph (no SVG).
+      const glyph = this.add.graphics();
+      this.board.add(glyph);
+      drawForbidden(glyph, r.x + r.w / 2, r.y + r.h * 0.6, r.w * 0.3);
+    } else if (personKey && !oos) {
       this.board.add(containImage(this, personKey, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 }));
     }
   }

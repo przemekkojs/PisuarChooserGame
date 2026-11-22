@@ -13,7 +13,8 @@ const C = {
   skin: '#f1c27d', skinLight: '#ffe0a8', porcelain: '#eef2f5', porcelainShade: '#b9c5d0',
   floor: '#9fb3c8', wet: '#3d8fd6', wetLight: '#8cc8f5', pee: '#e3c21b', peeLight: '#fff07a',
   person: '#6b4fa0', personLight: '#9376c9', smelly: '#4f8a2b', smellyLight: '#86c05a',
-  hero: '#d35400', heroLight: '#ff8a3d', pants: '#2c3e50', wall: '#2c3550', wallLight: '#3d4a70', tile: '#34405f',
+  hero: '#d35400', parent: '#1f8a8a', parentLight: '#4cc3c3', child: '#e84393', childLight: '#ff8ec4',
+  shy: '#5d6d9a', shyLight: '#8d9bc4', splasher: '#16a0d0', splasherLight: '#7fe0ff', oos: '#c0392b', sign: '#f5d76e', heroLight: '#ff8a3d', pants: '#2c3e50', wall: '#2c3550', wallLight: '#3d4a70', tile: '#34405f',
   shadow: '#000000',
 };
 const O5 = `stroke="${C.outline}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`;
@@ -52,7 +53,8 @@ const floor = (fill, light) => svg(200, 60, `
 <path d="M6 54 L22 8 L178 8 L194 54 Z" fill="${fill}" ${O}/>
 <path d="M26 14 L174 14" stroke="${light}" stroke-width="8" stroke-linecap="round"/>`);
 
-const personBody = (fill, light, smelly) => svg(160, 420, `
+const personBody = (fill, light, extra = '', scale = 1) => svg(160, 420, `
+<g transform="translate(${80 - 80 * scale} ${420 - 420 * scale}) scale(${scale})">
 ${shadow(80, 408, 60, 9)}
 <circle cx="80" cy="62" r="46" fill="${C.skin}" ${O}/>
 <path d="M40 52 Q80 8 120 52 Q80 34 40 52 Z" fill="${C.outline}"/>
@@ -62,7 +64,25 @@ ${shadow(80, 408, 60, 9)}
 <path d="M40 128 Q80 118 120 128" fill="none" stroke="${light}" stroke-width="10" stroke-linecap="round"/>
 <rect x="30" y="290" width="46" height="112" rx="10" fill="${C.pants}" ${O}/>
 <rect x="84" y="290" width="46" height="112" rx="10" fill="${C.pants}" ${O}/>
-${smelly ? `<path d="M30 20 q-14 -16 0 -30 M80 6 q-14 -16 0 -30 M130 20 q-14 -16 0 -30" fill="none" stroke="${C.smellyLight}" stroke-width="7" stroke-linecap="round" transform="translate(0 28)"/>` : ''}`);
+${extra}
+</g>`);
+
+const smellLines = `<path d="M30 20 q-14 -16 0 -30 M80 6 q-14 -16 0 -30 M130 20 q-14 -16 0 -30" fill="none" stroke="${C.smellyLight}" stroke-width="7" stroke-linecap="round" transform="translate(0 28)"/>`;
+// Parent: wide shoulders and a tie. Child: same figure at 55% height, pink, big cap.
+const parentExtra = `<path d="M80 118 L66 150 L80 270 L94 150 Z" fill="${C.parentLight}" ${O4}/>`;
+const childExtra = `<circle cx="80" cy="22" r="26" fill="${C.childLight}" ${O5}/>`;
+// Shy: hands covering the face.
+const shyExtra = `<rect x="34" y="50" width="38" height="30" rx="12" fill="${C.skinLight}" ${O5}/><rect x="88" y="50" width="38" height="30" rx="12" fill="${C.skinLight}" ${O5}/>`;
+// Splasher: water drops around the body.
+const splasherExtra = `<path d="M10 150 q-12 22 0 40 q12 -18 0 -40 Z M150 190 q-12 22 0 40 q12 -18 0 -40 Z M12 250 q-10 18 0 32 q10 -14 0 -32 Z" fill="${C.wetLight}" ${O4}/>`;
+
+// Out-of-order urinal: the urinal with a red sign across it.
+const urinalOos = () => svg(160, 280, `
+${shadow(86, 268, 62, 10)}
+<path d="M20 40 Q20 10 80 10 Q140 10 140 40 L140 200 Q140 262 80 262 Q20 262 20 200 Z" fill="${C.porcelainShade}" ${O}/>
+<path d="M46 80 Q46 60 80 60 Q114 60 114 80 L114 190 Q114 232 80 232 Q46 232 46 190 Z" fill="${C.porcelain}" ${O}/>
+<rect x="4" y="100" width="152" height="84" rx="10" fill="${C.sign}" ${O}/>
+<path d="M30 118 L130 166 M130 118 L30 166" stroke="${C.oos}" stroke-width="14" stroke-linecap="round"/>`);
 
 const heroBody = (wet) => svg(220, 420, `
 ${shadow(110, 408, 80, 9)}
@@ -100,8 +120,13 @@ const images = {
   door, hand, urinal,
   floor_wet: () => floor(C.wet, C.wetLight),
   floor_pee: () => floor(C.pee, C.peeLight),
-  person: () => personBody(C.person, C.personLight, false),
-  person_smelly: () => personBody(C.smelly, C.smellyLight, true),
+  person: () => personBody(C.person, C.personLight),
+  person_smelly: () => personBody(C.smelly, C.smellyLight, smellLines),
+  person_parent: () => personBody(C.parent, C.parentLight, parentExtra),
+  person_child: () => personBody(C.child, C.childLight, childExtra, 0.55),
+  person_shy: () => personBody(C.shy, C.shyLight, shyExtra),
+  person_splasher: () => personBody(C.splasher, C.splasherLight, splasherExtra),
+  urinal_oos: urinalOos,
   bg_wall: bgWall, bg_floor: bgFloor,
   hero: () => heroBody(false), hero_wet: () => heroBody(true),
 };

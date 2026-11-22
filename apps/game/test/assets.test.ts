@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import type { OccupantKind } from '@pisuar/core';
 import { ASSET_MANIFEST, IMAGE_SIZES } from '../src/assets';
+import { occupantColor, occupantLabel } from '../src/scene/placeholders';
 
 const publicDir = fileURLToPath(new URL('../public/', import.meta.url));
 const assetsMd = readFileSync(fileURLToPath(new URL('../../../assets/ASSETS.md', import.meta.url)), 'utf8');
@@ -10,7 +12,10 @@ const assetsMd = readFileSync(fileURLToPath(new URL('../../../assets/ASSETS.md',
 describe('asset manifest', () => {
   it('has all required keys', () => {
     expect(Object.keys(ASSET_MANIFEST.images).sort()).toEqual(
-      ['bg_floor', 'bg_wall', 'door', 'floor_pee', 'floor_wet', 'hand', 'hero', 'hero_wet', 'person', 'person_smelly', 'urinal'],
+      [
+        'bg_floor', 'bg_wall', 'door', 'floor_pee', 'floor_wet', 'hand', 'hero', 'hero_wet', 'person',
+        'person_child', 'person_parent', 'person_shy', 'person_smelly', 'person_splasher', 'urinal', 'urinal_oos',
+      ],
     );
     expect(Object.keys(ASSET_MANIFEST.sounds).sort()).toEqual(
       ['door_open', 'perk', 'pick_bad', 'pick_good', 'pick_occupied', 'tick', 'timeout'],
@@ -71,6 +76,20 @@ describe('asset manifest', () => {
   it('documents every key in assets/ASSETS.md', () => {
     for (const key of [...Object.keys(ASSET_MANIFEST.images), ...Object.keys(ASSET_MANIFEST.sounds)]) {
       expect(assetsMd).toContain('`' + key + '`');
+    }
+  });
+});
+
+describe('occupant placeholders', () => {
+  const kinds: OccupantKind[] = ['plain', 'smelly', 'parent', 'child', 'gap', 'shy', 'splasher', 'outOfOrder'];
+  it('gives every kind a non-empty label and a distinct colour', () => {
+    for (const k of kinds) expect(occupantLabel(k).length).toBeGreaterThan(0);
+    expect(new Set(kinds.map(occupantLabel)).size).toBe(kinds.length);
+    expect(new Set(kinds.map(occupantColor)).size).toBe(kinds.length);
+  });
+  it('parent and child differ from plain and smelly', () => {
+    for (const k of ['parent', 'child'] as const) {
+      expect([occupantColor('plain'), occupantColor('smelly')]).not.toContain(occupantColor(k));
     }
   });
 });
