@@ -24,6 +24,9 @@ Wszystkie obecne pliki to **placeholdery** (proste SVG pisane skryptem `apps/gam
 | `person_shy` | `assets/person_shy.svg` | 160×420, SVG | Nieśmiały: niebieskoszara postać zasłaniająca twarz dłońmi | Slot zajęty przez nieśmiałego (jego obecność zniechęca do sąsiednich pisuarów). Placeholder. |
 | `person_splasher` | `assets/person_splasher.svg` | 160×420, SVG | Chlapacz: błękitna postać z kroplami wody wokół | Slot zajęty przez chlapacza (moczy sąsiednią podłogę). Placeholder. |
 | `urinal_oos` | `assets/urinal_oos.svg` | 160×280, SVG | Pisuar z czerwonym krzyżem na żółtej tabliczce „nieczynny” | Slot nieczynny: rysowany zamiast `urinal`, bez osoby. Skalowany jak `urinal`. Placeholder. |
+| `person_late` | `assets/person_late.svg` | 160×420, SVG | Spóźnialski: pomarańczowa postać z kreskami pędu | Mignięcie na slocie po zastosowaniu zapowiedzi „przyjście”; kształt jak `person`. Placeholder. |
+| `cleaner` | `assets/cleaner.svg` | 160×420, SVG | Sprzątacz: zielony kombinezon, mop i wiaderko | Mignięcie na slocie po zastosowaniu zapowiedzi „mop” (podłoga staje się czysta). Placeholder. |
+| `shadow` | `assets/shadow.svg` | 160×280, SVG | Półprzezroczysty ciemny cień kształtu pisuara | Pulsujący znacznik zapowiedzi na slocie; na nim rysowany jest glif rodzaju zdarzenia (`shadowFor`). Placeholder. |
 | `bg_wall` | `assets/bg_wall.svg` | 1920×1080, SVG | Ściana toalety z kafelkami | Tło całego ekranu gry (rozciągane do 1920×1080). Niski kontrast, aby nie przeszkadzać planszy; bez przezroczystości. Placeholder. |
 | `bg_floor` | `assets/bg_floor.svg` | 1920×380, SVG | Podłoga z perspektywą (linie fug) | Dolne 380 px ekranu, pod rzędem pisuarów. Górna krawędź to listwa przypodłogowa. Placeholder. |
 | `hero` | `assets/hero.svg` | 220×420, SVG | Bohater w suchych spodniach | Ekran podsumowania („Zsikałeś się!”), skala 0,8, wyrównany do dołu (spód na y=500, `SummaryOverlay`). Ten sam kadr i pozycja co `hero_wet`. Placeholder. |

@@ -13,8 +13,8 @@ describe('asset manifest', () => {
   it('has all required keys', () => {
     expect(Object.keys(ASSET_MANIFEST.images).sort()).toEqual(
       [
-        'bg_floor', 'bg_wall', 'door', 'floor_pee', 'floor_wet', 'hand', 'hero', 'hero_wet', 'person',
-        'person_child', 'person_parent', 'person_shy', 'person_smelly', 'person_splasher', 'urinal', 'urinal_oos',
+        'bg_floor', 'bg_wall', 'cleaner', 'door', 'floor_pee', 'floor_wet', 'hand', 'hero', 'hero_wet', 'person',
+        'person_child', 'person_late', 'person_parent', 'person_shy', 'person_smelly', 'person_splasher', 'shadow', 'urinal', 'urinal_oos',
       ],
     );
     expect(Object.keys(ASSET_MANIFEST.sounds).sort()).toEqual(

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Board, Command, Game, GameEvent, GameState, Slot } from '@pisuar/core';
+import type { Board, Command, DynamicKind, Game, GameEvent, GameState, Slot } from '@pisuar/core';
 import type { Session } from '../session';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import { contains, hitIndex, urinalRects, type Rect } from './layout';
@@ -21,6 +21,7 @@ import {
   PALETTE,
   stretchImage,
 } from './placeholders';
+import { shadowFor } from './eventView';
 import { PauseOverlay } from './PauseOverlay';
 import { SummaryOverlay } from './SummaryOverlay';
 import { IMAGE_SIZES } from '../assets';
@@ -59,6 +60,9 @@ export class GameScene extends Phaser.Scene {
   private rects: Rect[] = [];
 
   private board!: Phaser.GameObjects.Container;
+  /** Telegraph markers by scheduled-event id; hidden together with the board. */
+  private markerLayer!: Phaser.GameObjects.Container;
+  private markers = new Map<number, Phaser.GameObjects.Container>();
   private highlights!: Phaser.GameObjects.Graphics;
   private door!: Phaser.GameObjects.Container;
   private skipBg!: Phaser.GameObjects.Graphics;
@@ -84,6 +88,7 @@ export class GameScene extends Phaser.Scene {
     this.session = data.session;
     this.run = data.game;
     this.rects = [];
+    this.markers = new Map();
     this.inputLockedUntil = 0;
     this.lastSkipEnabled = null;
   }
@@ -96,6 +101,7 @@ export class GameScene extends Phaser.Scene {
     if (hasTexture(this, 'bg_floor')) stretchImage(this, 'bg_floor', { x: 0, y: height - FLOOR_H, w: width, h: FLOOR_H });
 
     this.board = this.add.container(0, 0);
+    this.markerLayer = this.add.container(0, 0);
     this.highlights = this.add.graphics();
     this.door = this.add.container(DOOR_RECT.x, DOOR_RECT.y);
     if (hasTexture(this, 'door')) {
@@ -189,6 +195,8 @@ export class GameScene extends Phaser.Scene {
   private onBack(): void {
     const s = this.run.state;
     const screen = s.phase === 'SUMMARY' ? 'summary' : 'play';
+    // Same gate as the HUD pause button: no pause during the level result / door opening.
+    if (screen === 'play' && !s.paused && !this.canPause(s)) return;
     switch (backAction(screen, s.paused)) {
       case 'pause':
         this.dispatch({ type: 'pause' });
@@ -260,13 +268,24 @@ export class GameScene extends Phaser.Scene {
           this.message.setAlpha(0);
           this.summary.show(s);
           break;
+        case 'Telegraphed':
+          this.addMarker(ev.id, ev.kind, ev.index);
+          break;
+        case 'Applied':
+          this.removeMarker(ev.id);
+          this.buildBoard(ev.board);
+          this.flashApplied(ev.kind, ev.index);
+          break;
+        case 'Cancelled':
+          this.removeMarker(ev.id);
+          break;
         case 'Paused':
-          this.board.setVisible(false);
+          this.setBoardVisible(false);
           this.pause.show(s);
           break;
         case 'Resumed':
           this.pause.hide();
-          this.board.setVisible(s.phase !== 'DOOR_CLOSED');
+          this.setBoardVisible(s.phase !== 'DOOR_CLOSED');
           break;
         case 'RunEnded':
           this.pause.hide();
@@ -296,7 +315,9 @@ export class GameScene extends Phaser.Scene {
     this.highlights.clear();
     // The board stays hidden behind the closed door: the clock is stopped
     // then, so peeking would let the player think for free.
-    this.board.setVisible(!closed && !s.paused);
+    this.setBoardVisible(!closed && !s.paused);
+    this.clearMarkers();
+    for (const ev of s.pending) if (ev.telegraphed) this.addMarker(ev.id, ev.kind, ev.index);
     this.door.setScale(1, 1).setVisible(closed);
     if (s.phase === 'SUMMARY') this.summary.show(s);
     else this.summary.hide();
@@ -328,7 +349,8 @@ export class GameScene extends Phaser.Scene {
       (personKey === '' || hasTexture(this, personKey));
     if (!art) {
       drawSlot(g, r, slot);
-      if (kind) {
+      // `gap` already has its forbidden glyph drawn by `drawSlot` ('⊘' may be tofu).
+      if (kind && kind !== 'gap') {
         const marker = makeText(this, r.x + r.w / 2, r.y + r.h * 0.35, Math.max(28, r.w * 0.6));
         marker.setText(occupantLabel(kind));
         this.board.add(marker);
@@ -372,7 +394,7 @@ export class GameScene extends Phaser.Scene {
 
   private openDoorAnim(): void {
     this.inputLockedUntil = this.time.now + DOOR_OPEN_MS;
-    this.board.setVisible(true);
+    this.setBoardVisible(true);
     this.tweens.add({
       targets: this.door,
       scaleX: 0,
@@ -380,6 +402,53 @@ export class GameScene extends Phaser.Scene {
       ease: 'Quad.easeIn',
       onComplete: () => this.door.setVisible(false),
     });
+  }
+
+  private setBoardVisible(v: boolean): void {
+    this.board.setVisible(v);
+    this.markerLayer.setVisible(v);
+  }
+
+  /** Pulsing shadow + glyph over the slot the next change will touch. */
+  private addMarker(id: number, kind: DynamicKind, index: number): void {
+    const r = this.rects[index];
+    if (!r || this.markers.has(id)) return;
+    const { glyph, tint } = shadowFor(kind);
+    const m = this.add.container(0, 0);
+    if (hasTexture(this, 'shadow')) m.add(stretchImage(this, 'shadow', { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }));
+    else {
+      const g = this.add.graphics();
+      outlinedRect(g, { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }, PALETTE.outline, r.w * 0.3);
+      m.add(g);
+    }
+    m.add(makeText(this, r.x + r.w / 2, r.y + r.h * 0.12, Math.max(40, r.w * 1.1), glyph).setColor(`#${tint.toString(16).padStart(6, '0')}`));
+    this.markerLayer.add(m);
+    this.markers.set(id, m);
+    this.tweens.add({ targets: m, alpha: 0.45, duration: 350, yoyo: true, repeat: -1 });
+  }
+
+  private removeMarker(id: number): void {
+    const m = this.markers.get(id);
+    if (!m) return;
+    this.tweens.killTweensOf(m);
+    m.destroy();
+    this.markers.delete(id);
+  }
+
+  private clearMarkers(): void {
+    for (const id of [...this.markers.keys()]) this.removeMarker(id);
+  }
+
+  /** Short flash on the changed slot (the cleaner for a mop, a white flash otherwise). */
+  private flashApplied(kind: DynamicKind, index: number): void {
+    const r = this.rects[index];
+    if (!r) return;
+    const key = kind === 'mop' ? 'cleaner' : kind === 'arrive' ? 'person_late' : '';
+    const fx: Phaser.GameObjects.GameObject =
+      key && hasTexture(this, key)
+        ? containImage(this, key, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 })
+        : this.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, 0xffffff, 0.7);
+    this.tweens.add({ targets: fx, alpha: 0, duration: 450, onComplete: () => fx.destroy() });
   }
 
   /** Highlight the best urinals for a moment, then go to the next level. */

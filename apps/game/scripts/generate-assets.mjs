@@ -13,8 +13,11 @@ const C = {
   skin: '#f1c27d', skinLight: '#ffe0a8', porcelain: '#eef2f5', porcelainShade: '#b9c5d0',
   floor: '#9fb3c8', wet: '#3d8fd6', wetLight: '#8cc8f5', pee: '#e3c21b', peeLight: '#fff07a',
   person: '#6b4fa0', personLight: '#9376c9', smelly: '#4f8a2b', smellyLight: '#86c05a',
-  hero: '#d35400', parent: '#1f8a8a', parentLight: '#4cc3c3', child: '#e84393', childLight: '#ff8ec4',
-  shy: '#5d6d9a', shyLight: '#8d9bc4', splasher: '#16a0d0', splasherLight: '#7fe0ff', oos: '#c0392b', sign: '#f5d76e', heroLight: '#ff8a3d', pants: '#2c3e50', wall: '#2c3550', wallLight: '#3d4a70', tile: '#34405f',
+  hero: '#d35400', heroLight: '#ff8a3d', pants: '#2c3e50',
+  parent: '#1f8a8a', parentLight: '#4cc3c3', child: '#e84393', childLight: '#ff8ec4',
+  shy: '#5d6d9a', shyLight: '#8d9bc4', splasher: '#16a0d0', splasherLight: '#7fe0ff',
+  late: '#d98a2b', lateLight: '#ffc46b', cleaner: '#2e9b6a', cleanerLight: '#7fe0b0', bucket: '#7f8c8d',
+  oos: '#c0392b', sign: '#f5d76e', wall: '#2c3550', wallLight: '#3d4a70', tile: '#34405f',
   shadow: '#000000',
 };
 const O5 = `stroke="${C.outline}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`;
@@ -84,6 +87,13 @@ ${shadow(86, 268, 62, 10)}
 <rect x="4" y="100" width="152" height="84" rx="10" fill="${C.sign}" ${O}/>
 <path d="M30 118 L130 166 M130 118 L30 166" stroke="${C.oos}" stroke-width="14" stroke-linecap="round"/>`);
 
+// Late arrival: the person shape in an orange shirt with a running-speed streak.
+const lateExtra = `<path d="M-6 170 L22 170 M-6 200 L18 200 M-6 230 L22 230" stroke="${C.lateLight}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+// Cleaner: green overalls, a mop handle and a bucket.
+const cleanerExtra = `<path d="M138 120 L150 400" stroke="${C.doorDark}" stroke-width="9" stroke-linecap="round"/><path d="M130 392 L162 392 L158 414 L134 414 Z" fill="${C.cleanerLight}" ${O4}/><path d="M6 350 L46 350 L42 400 L10 400 Z" fill="${C.bucket}" ${O4}/>`;
+// Telegraph marker: a soft dark blob over the target slot (glyph is drawn by the scene).
+const shadowMarker = () => svg(160, 280, `<path d="M20 40 Q20 10 80 10 Q140 10 140 40 L140 200 Q140 262 80 262 Q20 262 20 200 Z" fill="${C.shadow}" opacity="0.55" ${O}/>`);
+
 const heroBody = (wet) => svg(220, 420, `
 ${shadow(110, 408, 80, 9)}
 <circle cx="110" cy="66" r="52" fill="${C.skin}" ${O}/>
@@ -127,6 +137,9 @@ const images = {
   person_shy: () => personBody(C.shy, C.shyLight, shyExtra),
   person_splasher: () => personBody(C.splasher, C.splasherLight, splasherExtra),
   urinal_oos: urinalOos,
+  person_late: () => personBody(C.late, C.lateLight, lateExtra),
+  cleaner: () => personBody(C.cleaner, C.cleanerLight, cleanerExtra),
+  shadow: shadowMarker,
   bg_wall: bgWall, bg_floor: bgFloor,
   hero: () => heroBody(false), hero_wet: () => heroBody(true),
 };
