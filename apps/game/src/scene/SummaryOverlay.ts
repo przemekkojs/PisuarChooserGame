@@ -37,7 +37,11 @@ export class SummaryOverlay {
   private readonly recordText: Phaser.GameObjects.Text;
   private readonly continueBg: Phaser.GameObjects.Graphics;
   private readonly continueText: Phaser.GameObjects.Text;
-  private lockedUntil = 0;
+  private lockedAt = 0;
+  /** Scene time until which taps are ignored. */
+  get lockedUntil(): number {
+    return this.lockedAt;
+  }
   private continueEnabled = false;
   private lastContinueEnabled: boolean | null = null;
 
@@ -90,7 +94,7 @@ export class SummaryOverlay {
 
   show(s: Readonly<GameState>): void {
     this.scene.tweens.killTweensOf([this.stain, this.panel]);
-    this.lockedUntil = this.scene.time.now + SUMMARY_LOCK_MS;
+    this.lockedAt = this.scene.time.now + SUMMARY_LOCK_MS;
     this.refresh(s);
     this.root.setVisible(true);
     this.panel.setAlpha(0);
@@ -121,6 +125,9 @@ export class SummaryOverlay {
     this.solvedText.setText(`Rozwiązane poziomy: ${s.playerLevel}`);
     this.recordText.setText(`Rekord: ${s.record}`);
     this.continueText.setText(info.label);
+    // After a voluntary "Zakończ turę" there is no Kontynuuj at all.
+    this.continueBg.setVisible(!s.endedByPlayer);
+    this.continueText.setVisible(!s.endedByPlayer);
     if (info.enabled !== this.lastContinueEnabled) {
       this.lastContinueEnabled = info.enabled;
       this.continueText.setColor(info.enabled ? PALETTE.text : PALETTE.textDim);
@@ -132,7 +139,7 @@ export class SummaryOverlay {
   /** Handles a tap while visible; returns true when the overlay consumed it. */
   tap(x: number, y: number): boolean {
     if (!this.root.visible) return false;
-    if (this.scene.time.now < this.lockedUntil) return true;
+    if (this.scene.time.now < this.lockedAt) return true;
     if (contains(CONTINUE_RECT, x, y)) {
       if (this.continueEnabled) this.handlers.onContinue();
     } else if (contains(OK_RECT, x, y)) {

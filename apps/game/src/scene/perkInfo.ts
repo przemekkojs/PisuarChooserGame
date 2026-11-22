@@ -19,6 +19,6 @@ export function continueInfo(s: Readonly<GameState>): {
   return {
     label: `Kontynuuj (${price})`,
     price,
-    enabled: s.phase === 'SUMMARY' && s.balance >= price,
+    enabled: s.phase === 'SUMMARY' && !s.endedByPlayer && s.balance >= price,
   };
 }

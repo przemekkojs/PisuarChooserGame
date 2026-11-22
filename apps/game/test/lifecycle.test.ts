@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn() } }));
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => false } }));
 
-import { onAppHidden, type LifecycleDeps } from '../src/lifecycle';
+import { onAppHidden, onBackButton, type LifecycleDeps } from '../src/lifecycle';
 
 function fakes(isNative: boolean) {
   const listeners = new Set<() => void>();
@@ -84,5 +84,43 @@ describe('onAppHidden', () => {
     f.resolveAdd();
     await flush();
     expect(f.remove).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('onBackButton', () => {
+  it('on web without App returns a working unsubscribe and does not throw', () => {
+    const off = onBackButton(vi.fn(), { isNative: () => false, addBackListener: vi.fn() });
+    expect(() => off()).not.toThrow();
+  });
+
+  it('calls the handler on backButton, not after unsubscribe', async () => {
+    let cb: (() => void) | null = null;
+    const remove = vi.fn();
+    const handler = vi.fn();
+    const off = onBackButton(handler, {
+      isNative: () => true,
+      addBackListener: async (c) => {
+        cb = c;
+        return { remove };
+      },
+    });
+    await flush();
+    cb!();
+    expect(handler).toHaveBeenCalledTimes(1);
+    off();
+    cb!();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribe before registration resolves still removes the handle', async () => {
+    const remove = vi.fn();
+    const off = onBackButton(vi.fn(), {
+      isNative: () => true,
+      addBackListener: async () => ({ remove }),
+    });
+    off();
+    await flush();
+    expect(remove).toHaveBeenCalledTimes(1);
   });
 });

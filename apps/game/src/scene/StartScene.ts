@@ -4,6 +4,9 @@ import type { Session } from '../session';
 import { contains, type Rect } from './layout';
 import { makeText, outlinedRect, PALETTE } from './placeholders';
 import type { GameSceneData } from './GameScene';
+import { App } from '@capacitor/app';
+import { backAction } from '../backAction';
+import { onBackButton } from '../lifecycle';
 
 export interface StartSceneData {
   session: Session;
@@ -54,6 +57,10 @@ export class StartScene extends Phaser.Scene {
     }
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onTap(p.x, p.y));
+    const offBack = onBackButton(() => {
+      if (backAction('start', false) === 'exit') void App.exitApp();
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offBack);
   }
 
   private onTap(x: number, y: number): void {

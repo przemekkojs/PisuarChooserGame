@@ -63,3 +63,42 @@ export function onAppHidden(onHidden: () => void, deps: LifecycleDeps = defaultD
     handle = null;
   };
 }
+
+export interface BackButtonDeps {
+  isNative: () => boolean;
+  addBackListener: (cb: () => void) => Promise<ListenerHandle>;
+}
+
+const defaultBackDeps = (): BackButtonDeps => ({
+  isNative: () => Capacitor.isNativePlatform(),
+  addBackListener: (cb) => App.addListener('backButton', cb),
+});
+
+/**
+ * Calls `handler` on the Android system back button (Capacitor `backButton`).
+ * A no-op on the web. Registering a listener disables Capacitor's default
+ * back behaviour, so the handler decides (e.g. `App.exitApp()`).
+ */
+export function onBackButton(handler: () => void, deps: BackButtonDeps = defaultBackDeps()): () => void {
+  let disposed = false;
+  let handle: ListenerHandle | null = null;
+  if (deps.isNative()) {
+    deps
+      .addBackListener(() => {
+        if (!disposed) handler();
+      })
+      .then((h) => {
+        if (disposed) void h.remove();
+        else handle = h;
+      })
+      .catch(() => {
+        // no back handling available
+      });
+  }
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    if (handle) void handle.remove();
+    handle = null;
+  };
+}

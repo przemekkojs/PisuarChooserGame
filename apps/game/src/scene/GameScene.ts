@@ -6,7 +6,8 @@ import { contains, hitIndex, urinalRects, type Rect } from './layout';
 import { actualLoss, formatTime, levelLabel } from './format';
 import { skipInfo } from './perkInfo';
 import { playSound } from '../audio';
-import { onAppHidden } from '../lifecycle';
+import { backAction } from '../backAction';
+import { onAppHidden, onBackButton } from '../lifecycle';
 import {
   containImage,
   drawDoor,
@@ -17,7 +18,9 @@ import {
   PALETTE,
   stretchImage,
 } from './placeholders';
+import { PauseOverlay } from './PauseOverlay';
 import { SummaryOverlay } from './SummaryOverlay';
+import { IMAGE_SIZES } from '../assets';
 import type { StartSceneData } from './StartScene';
 
 export interface GameSceneData {
@@ -39,7 +42,9 @@ const MAX_TICK_MS = 100;
 /** Extra vertical tap area above/below the urinal row. */
 const HIT_PAD_Y = 220;
 
-const FLOOR_H = 380;
+const FLOOR_H = IMAGE_SIZES.bg_floor!.h;
+/** Pause button in the top-left corner of the HUD. */
+const PAUSE_RECT: Rect = { x: 32, y: 32, w: 120, h: 120 };
 /** Bottom-right corner, clear of the centred HUD/timer and the urinal row. */
 const SKIP_RECT: Rect = { x: GAME_WIDTH - 32 - 460, y: GAME_HEIGHT - 32 - 110, w: 460, h: 110 };
 /** Centred door, same 700:1100 proportion as the `door` art. */
@@ -59,6 +64,9 @@ export class GameScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   private message!: Phaser.GameObjects.Text;
   private summary!: SummaryOverlay;
+  private pause!: PauseOverlay;
+  private pauseBg!: Phaser.GameObjects.Graphics;
+  private pauseText!: Phaser.GameObjects.Text;
 
   /** Ignore taps until this scene time (door animation in progress). */
   private inputLockedUntil = 0;
@@ -106,6 +114,14 @@ export class GameScene extends Phaser.Scene {
     this.timerText = makeText(this, width / 2, 90, 100);
     this.message = makeText(this, width / 2, height - 90, 84).setAlpha(0);
 
+    this.pauseBg = this.add.graphics();
+    outlinedRect(this.pauseBg, PAUSE_RECT, PALETTE.button);
+    this.pauseText = makeText(this, PAUSE_RECT.x + PAUSE_RECT.w / 2, PAUSE_RECT.y + PAUSE_RECT.h / 2, 64, 'II');
+    this.pause = new PauseOverlay(this, {
+      onResume: () => this.dispatch({ type: 'resume' }),
+      onEndRun: () => this.dispatch({ type: 'endRun' }),
+    });
+
     this.summary = new SummaryOverlay(this, {
       onContinue: () => this.dispatch({ type: 'buyPerk', perk: 'continue' }),
       onOk: () => {
@@ -120,7 +136,11 @@ export class GameScene extends Phaser.Scene {
     // appStateChange on Android. Balance and records live in the session,
     // which already persisted them as the events happened.
     const offHidden = onAppHidden(() => this.toStart());
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offHidden);
+    const offBack = onBackButton(() => this.onBack());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      offHidden();
+      offBack();
+    });
 
     this.syncFromState();
   }
@@ -137,8 +157,13 @@ export class GameScene extends Phaser.Scene {
 
   private onTap(x: number, y: number): void {
     if (this.summary.tap(x, y)) return;
+    if (this.pause.tap(x, y)) return;
     if (this.time.now < this.inputLockedUntil) return;
     const s = this.run.state;
+    if (this.canPause(s) && contains(PAUSE_RECT, x, y)) {
+      this.dispatch({ type: 'pause' });
+      return;
+    }
     if ((s.phase === 'DOOR_CLOSED' || s.phase === 'PLAYING') && contains(SKIP_RECT, x, y)) {
       if (skipInfo(s).enabled) this.dispatch({ type: 'skipLevel' });
       return;
@@ -150,6 +175,32 @@ export class GameScene extends Phaser.Scene {
     if (s.phase === 'PLAYING') {
       const i = hitIndex(this.rects, x, y, HIT_PAD_Y);
       if (i >= 0) this.dispatch({ type: 'pickUrinal', index: i });
+    }
+  }
+
+  private canPause(s: Readonly<GameState>): boolean {
+    return !s.paused && (s.phase === 'PLAYING' || s.phase === 'DOOR_CLOSED');
+  }
+
+  /** System "Wstecz": pause / resume / summary OK (exit lives on the start screen). */
+  private onBack(): void {
+    const s = this.run.state;
+    const screen = s.phase === 'SUMMARY' ? 'summary' : 'play';
+    switch (backAction(screen, s.paused)) {
+      case 'pause':
+        this.dispatch({ type: 'pause' });
+        break;
+      case 'resume':
+        this.dispatch({ type: 'resume' });
+        break;
+      case 'summaryOk':
+        if (this.summary.visible && this.time.now >= this.summary.lockedUntil) {
+          this.dispatch({ type: 'acknowledgeSummary' });
+          this.toStart();
+        }
+        break;
+      default:
+        break;
     }
   }
 
@@ -206,6 +257,19 @@ export class GameScene extends Phaser.Scene {
           this.message.setAlpha(0);
           this.summary.show(s);
           break;
+        case 'Paused':
+          this.board.setVisible(false);
+          this.pause.show(s);
+          break;
+        case 'Resumed':
+          this.pause.hide();
+          this.board.setVisible(s.phase !== 'DOOR_CLOSED');
+          break;
+        case 'RunEnded':
+          this.pause.hide();
+          this.message.setAlpha(0);
+          this.summary.show(s);
+          break;
         case 'PerkBought':
           playSound(this, 'perk');
           this.say(`−${ev.price}`, PALETTE.textDim);
@@ -229,10 +293,12 @@ export class GameScene extends Phaser.Scene {
     this.highlights.clear();
     // The board stays hidden behind the closed door: the clock is stopped
     // then, so peeking would let the player think for free.
-    this.board.setVisible(!closed);
+    this.board.setVisible(!closed && !s.paused);
     this.door.setScale(1, 1).setVisible(closed);
     if (s.phase === 'SUMMARY') this.summary.show(s);
     else this.summary.hide();
+    if (s.paused) this.pause.show(s);
+    else this.pause.hide();
     this.timerText.setColor(PALETTE.text).setScale(1);
     this.refreshHud(s);
   }
@@ -285,6 +351,9 @@ export class GameScene extends Phaser.Scene {
       this.skipBg.clear();
       outlinedRect(this.skipBg, SKIP_RECT, skip.enabled ? PALETTE.button : PALETTE.buttonDisabled);
     }
+    const showPause = this.canPause(s);
+    this.pauseBg.setVisible(showPause);
+    this.pauseText.setVisible(showPause);
     if (this.summary.visible) this.summary.refresh(s);
   }
 

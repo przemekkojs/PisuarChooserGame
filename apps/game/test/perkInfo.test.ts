@@ -28,6 +28,7 @@ describe('continueInfo', () => {
     expect(continueInfo(s)).toEqual({ label: `Kontynuuj (${p0})`, price: p0, enabled: true });
     expect(continueInfo({ ...s, balance: p0 - 1 }).enabled).toBe(false);
     expect(continueInfo({ ...s, phase: 'PLAYING' }).enabled).toBe(false);
+    expect(continueInfo({ ...s, endedByPlayer: true }).enabled).toBe(false);
     const used = { ...s, perkUses: { skip: 0, continue: 2 }, balance: p2 - 1 };
     expect(continueInfo(used)).toEqual({ label: `Kontynuuj (${p2})`, price: p2, enabled: false });
   });
