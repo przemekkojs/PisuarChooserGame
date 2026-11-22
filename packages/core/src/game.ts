@@ -185,7 +185,7 @@ export function createGame(opts: GameOptions): Game {
       }
       if (elapsed < ev.applyAtMs) continue;
       s.pending = s.pending.filter((p) => p !== ev);
-      const next = applyEvent(s.board, ev, rng);
+      const next = applyEvent(s.board, ev, rng, s.difficultyLevel);
       if (next) {
         s.board = next;
         out.push({ type: 'Applied', id: ev.id, kind: ev.kind, index: ev.index, board: copyBoard(next) });

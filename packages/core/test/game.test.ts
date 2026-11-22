@@ -771,12 +771,12 @@ describe('dynamic events (mop)', () => {
       expect(g.state.levelTimeMs).toBe(3000);
       const open = g.dispatch({ type: 'openDoor' });
       const ev = g.state.pending[0];
-      if (!ev || ev.telegraphAtMs !== 0 || !applyEvent(g.state.board, ev, createRng(0))) continue;
+      if (!ev || ev.telegraphAtMs !== 0 || !applyEvent(g.state.board, ev, createRng(0), g.state.difficultyLevel)) continue;
       found = true;
       expect(ev.applyAtMs).toBe(TELEGRAPH_MS);
       expect(open).toEqual([
         { type: 'DoorOpening' },
-        { type: 'Telegraphed', id: ev.id, kind: 'mop', index: ev.index },
+        { type: 'Telegraphed', id: ev.id, kind: ev.kind, index: ev.index },
       ]);
       expect(g.dispatch({ type: 'tick', dtMs: TELEGRAPH_MS - 100 })).toEqual([]);
       expect(g.dispatch({ type: 'tick', dtMs: 100 }).map((e) => e.type)).toEqual(['Applied']);
@@ -791,5 +791,38 @@ describe('dynamic events (mop)', () => {
     snap.pending.length = 0;
     expect(g.state.pending).toHaveLength(1);
     expect(g.state.pending[0]!.telegraphed).toBe(false);
+  });
+});
+
+describe('dynamic events (arrive, leave)', () => {
+  /** Hard run skipped to level >= 24; returns the first level whose first pending event matches. */
+  function find(want: (g: Game, ev: ScheduledEvent) => boolean): { g: Game; ev: ScheduledEvent } {
+    for (let seed = 1; seed <= 600; seed++) {
+      const g = mk({ seed, balance: 1e12 });
+      g.dispatch({ type: 'startGame', difficulty: 'hard' });
+      while (g.state.difficultyLevel < 24) g.dispatch({ type: 'skipLevel' });
+      g.dispatch({ type: 'openDoor' });
+      const ev = g.state.pending[0];
+      if (ev && want(g, ev)) return { g, ev };
+    }
+    throw new Error('no matching seed');
+  }
+  const elapsed = (g: Game) => g.state.levelTimeMs - g.state.timeLeftMs;
+  const tickTo = (g: Game, ms: number) => g.dispatch({ type: 'tick', dtMs: ms - elapsed(g) });
+
+  it('Telegraphed then Applied for arrive; the new person is tappable as occupied', () => {
+    const { g, ev } = find((g, e) => e.kind === 'arrive' && !!applyEvent(g.state.board, e, createRng(0), 24));
+    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+    expect(g.state.board[ev.index]!.occupant).not.toBeNull();
+    expect(g.dispatch({ type: 'pickUrinal', index: ev.index })[0]!.type).toBe('PickedOccupied');
+  });
+
+  it('Telegraphed then Applied for leave; the slot is pickable and judged with a wet floor', () => {
+    const { g, ev } = find((g, e) => e.kind === 'leave' && !!applyEvent(g.state.board, e, createRng(0), 24));
+    expect(tickTo(g, ev.applyAtMs).map((e) => e.type)).toEqual(['Telegraphed', 'Applied']);
+    expect(g.state.board[ev.index]).toEqual({ floor: 'wet', occupant: null });
+    const expected = evaluatePick(g.state.board, ev.index);
+    const evs = g.dispatch({ type: 'pickUrinal', index: ev.index });
+    expect(evs[0]!.type).toBe(expected.kind === 'best' ? 'PickedBest' : 'PickedWorse');
   });
 });

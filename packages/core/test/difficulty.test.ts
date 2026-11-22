@@ -126,11 +126,8 @@ describe('levelParams dynamic events', () => {
       const p = levelParams(l);
       if (l < 14) expect(p.dynamic, `level ${l}`).toEqual([]);
       else if (l < 20) expect(p.dynamic, `level ${l}`).toEqual(['mop']);
-      else {
-        expect(p.dynamic).toContain('mop');
-        expect(p.dynamic).toContain('leave');
-        expect(p.dynamic.includes('arrive'), `level ${l}`).toBe(l >= 24);
-      }
+      else if (l < 24) expect(p.dynamic, `level ${l}`).toEqual(['mop', 'leave']);
+      else expect(p.dynamic, `level ${l}`).toEqual(['mop', 'leave', 'arrive']);
       expect(p.dynamicMax, `level ${l}`).toBe(l >= 30 ? 2 : 1);
     }
   });

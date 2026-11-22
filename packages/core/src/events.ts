@@ -30,8 +30,11 @@ function targets(board: Board, kind: DynamicKind): number[] {
     case 'mop':
       return board.flatMap((s, i) => (!s.occupant && s.floor === 'clean' ? [i] : []));
     case 'arrive':
-    case 'leave':
-      return []; // Task 10.
+      return board.flatMap((s, i) => (!s.occupant ? [i] : []));
+    case 'leave': {
+      // Plain or smelly only: never a pair member (child/gap/parent), shy, splasher or outOfOrder.
+      return board.flatMap((s, i) => (s.occupant && (s.occupant.kind === 'plain' || s.occupant.kind === 'smelly') ? [i] : []));
+    }
   }
 }
 
@@ -80,7 +83,7 @@ export function planEvents(
 }
 
 /** Returns a new board, or null when the change is impossible or would invalidate the board (-> Cancelled). */
-export function applyEvent(board: Board, ev: ScheduledEvent, rng: Rng): Board | null {
+export function applyEvent(board: Board, ev: ScheduledEvent, rng: Rng, difficultyLevel = 1): Board | null {
   const slot = board[ev.index];
   if (!slot) return null;
   const next = copyBoard(board);
@@ -89,9 +92,17 @@ export function applyEvent(board: Board, ev: ScheduledEvent, rng: Rng): Board | 
       if (slot.occupant || slot.floor !== 'clean') return null;
       next[ev.index]!.floor = 'wet';
       break;
-    case 'arrive':
+    case 'arrive': {
+      if (slot.occupant) return null;
+      const smelly =
+        difficultyLevel >= LEVELS.dynamic.arriveSmellyLevel && rng.next() < LEVELS.dynamic.arriveSmellyChance;
+      next[ev.index]!.occupant = { kind: smelly ? 'smelly' : 'plain' };
+      break;
+    }
     case 'leave':
-      return null; // Task 10 (arrive draws smelly vs plain from rng).
+      if (!slot.occupant || (slot.occupant.kind !== 'plain' && slot.occupant.kind !== 'smelly')) return null;
+      next[ev.index] = { floor: 'wet', occupant: null };
+      break;
   }
   return isValidBoard(next) ? next : null;
 }

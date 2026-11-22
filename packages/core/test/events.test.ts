@@ -75,14 +75,19 @@ describe('planEvents (mop)', () => {
   });
 
   it('with dynamicMax 2 plans at most two different kinds, telegraphs >= TELEGRAPH_MS apart', () => {
+    const board = parseBoard('X _ _ M _ Z _ _ X _');
+    let sawTwo = false;
     for (let seed = 1; seed <= 200; seed++) {
-      const evs = plan(seed, { dynamic: ['mop', 'leave', 'arrive'], dynamicMax: 2 });
+      const evs = plan(seed, { dynamic: ['mop', 'leave', 'arrive'], dynamicMax: 2 }, board);
       expect(evs.length).toBeLessThanOrEqual(2);
       if (evs.length === 2) {
+        sawTwo = true;
         expect(evs[0]!.kind).not.toBe(evs[1]!.kind);
+        expect(evs[0]!.index).not.toBe(evs[1]!.index);
         expect(evs[1]!.telegraphAtMs - evs[0]!.telegraphAtMs).toBeGreaterThanOrEqual(TELEGRAPH_MS);
       }
     }
+    expect(sawTwo).toBe(true);
   });
 
   it('plans nothing when there is no free clean slot', () => {
@@ -116,5 +121,83 @@ describe('applyEvent (mop)', () => {
   it('returns null when the resulting board would be invalid', () => {
     // Two free slots: wetting the clean one makes both cost the same.
     expect(applyEvent(parseBoard('M X _'), mop(2), createRng(1))).toBeNull();
+  });
+});
+
+describe('planEvents (arrive, leave)', () => {
+  const B = parseBoard('X _ P:M C G Z Y O _ H');
+  it('arrive targets a free slot within its window', () => {
+    const [lo, hi] = LEVELS.dynamic.windows.arrive;
+    let n = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      for (const ev of plan(seed, { dynamic: ['arrive'] }, B)) {
+        n++;
+        expect(ev.kind).toBe('arrive');
+        expect(B[ev.index]!.occupant).toBeNull();
+        expect(ev.applyAtMs).toBeGreaterThanOrEqual(lo * TIME_MS);
+        expect(ev.applyAtMs).toBeLessThanOrEqual(hi * TIME_MS);
+      }
+    }
+    expect(n).toBeGreaterThan(0);
+  });
+  it('leave targets only plain or smelly people outside the pair, within its window', () => {
+    const board = parseBoard('X _ P C G Z Y O _ H');
+    const [lo, hi] = LEVELS.dynamic.windows.leave;
+    const seen = new Set<number>();
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const ev of plan(seed, { dynamic: ['leave'] }, board)) {
+        seen.add(ev.index);
+        expect(['plain', 'smelly']).toContain(board[ev.index]!.occupant!.kind);
+        expect(ev.applyAtMs).toBeGreaterThanOrEqual(lo * TIME_MS);
+        expect(ev.applyAtMs).toBeLessThanOrEqual(hi * TIME_MS);
+      }
+    }
+    expect([...seen].sort()).toEqual([0, 5]);
+  });
+  it('plans nothing without a candidate', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      expect(plan(seed, { dynamic: ['leave'] }, parseBoard('P C G _ _ O Y'))).toEqual([]);
+      expect(plan(seed, { dynamic: ['arrive'] }, parseBoard('X Z X'))).toEqual([]);
+    }
+  });
+});
+
+describe('applyEvent (arrive, leave)', () => {
+  const ev = (kind: 'arrive' | 'leave', index: number): ScheduledEvent => ({
+    id: 1, kind, index, telegraphAtMs: 3000, applyAtMs: 4500, telegraphed: true,
+  });
+  const B = parseBoard('X _ _ M _ Z');
+  it('arrive always seats a plain person below the smelly level', () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      const next = applyEvent(B, ev('arrive', 1), createRng(seed), LEVELS.dynamic.arriveSmellyLevel - 1);
+      expect(next![1]!.occupant).toEqual({ kind: 'plain' });
+    }
+  });
+  it('arrive is smelly in about 25% of cases from the smelly level', () => {
+    let smelly = 0;
+    const N = 400;
+    for (let seed = 1; seed <= N; seed++) {
+      const next = applyEvent(B, ev('arrive', 1), createRng(seed), LEVELS.dynamic.arriveSmellyLevel);
+      if (next![1]!.occupant!.kind === 'smelly') smelly++;
+    }
+    expect(smelly / N).toBeGreaterThan(0.15);
+    expect(smelly / N).toBeLessThan(0.35);
+  });
+  it('leave frees the slot with a wet floor and keeps the board valid', () => {
+    const next = applyEvent(B, ev('leave', 0), createRng(1), 30);
+    expect(next![0]).toEqual({ floor: 'wet', occupant: null });
+    expect(B[0]!.occupant).not.toBeNull();
+  });
+  it('returns null when the target is wrong', () => {
+    expect(applyEvent(B, ev('arrive', 0), createRng(1), 30)).toBeNull();
+    expect(applyEvent(B, ev('leave', 1), createRng(1), 30)).toBeNull();
+    expect(applyEvent(parseBoard('P C G _ _'), ev('leave', 0), createRng(1), 30)).toBeNull();
+    expect(applyEvent(B, ev('leave', 99), createRng(1), 30)).toBeNull();
+  });
+  it('arrive on one of exactly two free slots is cancelled', () => {
+    expect(applyEvent(parseBoard('X _ _ X'), ev('arrive', 1), createRng(1), 30)).toBeNull();
+  });
+  it('leave that results in equal costs is cancelled', () => {
+    expect(applyEvent(parseBoard('X M M'), ev('leave', 0), createRng(1), 30)).toBeNull();
   });
 });
