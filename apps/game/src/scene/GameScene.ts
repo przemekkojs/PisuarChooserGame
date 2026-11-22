@@ -63,6 +63,8 @@ export class GameScene extends Phaser.Scene {
   /** Telegraph markers by scheduled-event id; hidden together with the board. */
   private markerLayer!: Phaser.GameObjects.Container;
   private markers = new Map<number, Phaser.GameObjects.Container>();
+  /** Short-lived "applied" flash objects, so a rebuild/clear can drop them. */
+  private flashFx = new Set<Phaser.GameObjects.GameObject>();
   private highlights!: Phaser.GameObjects.Graphics;
   private door!: Phaser.GameObjects.Container;
   private skipBg!: Phaser.GameObjects.Graphics;
@@ -89,6 +91,7 @@ export class GameScene extends Phaser.Scene {
     this.run = data.game;
     this.rects = [];
     this.markers = new Map();
+    this.flashFx = new Set();
     this.inputLockedUntil = 0;
     this.lastSkipEnabled = null;
   }
@@ -245,12 +248,14 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'PickedBest':
           playSound(this, 'pick_good');
+          this.clearMarkers();
           this.cameras.main.flash(200, 46, 204, 113);
           this.say('Dobrze!', PALETTE.textGood);
           this.showResult(ev.best);
           break;
         case 'PickedWorse':
           playSound(this, 'pick_bad');
+          this.clearMarkers();
           {
             const lost = actualLoss(this.balanceBefore, s.balance);
             this.say(lost > 0 ? `Źle! −${lost}` : 'Źle!', PALETTE.textBad);
@@ -266,6 +271,7 @@ export class GameScene extends Phaser.Scene {
         case 'TimedOut':
           playSound(this, 'timeout');
           this.message.setAlpha(0);
+          this.clearMarkers();
           this.summary.show(s);
           break;
         case 'Telegraphed':
@@ -290,6 +296,7 @@ export class GameScene extends Phaser.Scene {
         case 'RunEnded':
           this.pause.hide();
           this.message.setAlpha(0);
+          this.clearMarkers();
           this.summary.show(s);
           break;
         case 'PerkBought':
@@ -437,6 +444,11 @@ export class GameScene extends Phaser.Scene {
 
   private clearMarkers(): void {
     for (const id of [...this.markers.keys()]) this.removeMarker(id);
+    for (const fx of [...this.flashFx]) {
+      this.tweens.killTweensOf(fx);
+      fx.destroy();
+    }
+    this.flashFx.clear();
   }
 
   /** Short flash on the changed slot (the cleaner for a mop, a white flash otherwise). */
@@ -448,7 +460,16 @@ export class GameScene extends Phaser.Scene {
       key && hasTexture(this, key)
         ? containImage(this, key, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 })
         : this.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, 0xffffff, 0.7);
-    this.tweens.add({ targets: fx, alpha: 0, duration: 450, onComplete: () => fx.destroy() });
+    this.flashFx.add(fx);
+    this.tweens.add({
+      targets: fx,
+      alpha: 0,
+      duration: 450,
+      onComplete: () => {
+        this.flashFx.delete(fx);
+        fx.destroy();
+      },
+    });
   }
 
   /** Highlight the best urinals for a moment, then go to the next level. */

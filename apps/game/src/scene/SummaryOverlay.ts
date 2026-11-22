@@ -3,6 +3,7 @@ import type { GameState } from '@pisuar/core';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import { contains, type Rect } from './layout';
 import { continueInfo } from './perkInfo';
+import { summaryInfo } from './summaryInfo';
 import { hasTexture, makeText, outlinedRect, PALETTE } from './placeholders';
 
 /**
@@ -33,6 +34,7 @@ export class SummaryOverlay {
   /** Spreads over the pants: a stain rectangle (fallback) or the wet hero sprite. */
   private readonly stain: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
   private readonly spreadsInY: boolean;
+  private readonly titleText: Phaser.GameObjects.Text;
   private readonly solvedText: Phaser.GameObjects.Text;
   private readonly recordText: Phaser.GameObjects.Text;
   private readonly continueBg: Phaser.GameObjects.Graphics;
@@ -53,7 +55,8 @@ export class SummaryOverlay {
     const add = scene.add;
     this.root = add.container(0, 0).setDepth(100).setVisible(false);
     this.root.add(add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75));
-    this.root.add(makeText(scene, width / 2, 110, 100, 'Zsikałeś się!').setColor(PALETTE.textBad));
+    this.titleText = makeText(scene, width / 2, 110, 100, 'Zsikałeś się!').setColor(PALETTE.textBad);
+    this.root.add(this.titleText);
 
     const cx = width / 2;
     if (hasTexture(scene, 'hero') && hasTexture(scene, 'hero_wet')) {
@@ -98,7 +101,10 @@ export class SummaryOverlay {
     this.refresh(s);
     this.root.setVisible(true);
     this.panel.setAlpha(0);
-    if (this.spreadsInY) {
+    if (!summaryInfo(s).wet) {
+      // Voluntary end of turn: no accident, so no stain / wet hero.
+      this.stain.setAlpha(0);
+    } else if (this.spreadsInY) {
       this.stain.setScale(1, 0).setAlpha(0.9);
       this.scene.tweens.add({ targets: this.stain, scaleY: 1, duration: SUMMARY_LOCK_MS, ease: 'Sine.easeOut' });
     } else {
@@ -121,6 +127,8 @@ export class SummaryOverlay {
   /** Texts and the Kontynuuj state from a state snapshot. */
   refresh(s: Readonly<GameState>): void {
     const info = continueInfo(s);
+    const sum = summaryInfo(s);
+    this.titleText.setText(sum.title).setColor(sum.wet ? PALETTE.textBad : PALETTE.text);
     this.continueEnabled = info.enabled;
     this.solvedText.setText(`Rozwiązane poziomy: ${s.playerLevel}`);
     this.recordText.setText(`Rekord: ${s.record}`);
