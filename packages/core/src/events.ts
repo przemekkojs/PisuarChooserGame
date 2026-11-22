@@ -101,7 +101,8 @@ export function applyEvent(board: Board, ev: ScheduledEvent, rng: Rng, difficult
     }
     case 'leave':
       if (!slot.occupant || (slot.occupant.kind !== 'plain' && slot.occupant.kind !== 'smelly')) return null;
-      next[ev.index] = { floor: 'wet', occupant: null };
+      // The leaver wets the floor, but a worse pee floor stays.
+      next[ev.index] = { floor: slot.floor === 'pee' ? 'pee' : 'wet', occupant: null };
       break;
   }
   return isValidBoard(next) ? next : null;

@@ -188,6 +188,14 @@ describe('applyEvent (arrive, leave)', () => {
     expect(next![0]).toEqual({ floor: 'wet', occupant: null });
     expect(B[0]!.occupant).not.toBeNull();
   });
+  it('leave keeps a pee floor (never downgrades pee to wet)', () => {
+    const next = applyEvent(parseBoard('X:S _ _ M _ Z'), ev('leave', 0), createRng(1), 30);
+    expect(next![0]).toEqual({ floor: 'pee', occupant: null });
+  });
+  it('a smelly person can leave too', () => {
+    const next = applyEvent(B, ev('leave', 5), createRng(1), 30);
+    expect(next![5]).toEqual({ floor: 'wet', occupant: null });
+  });
   it('returns null when the target is wrong', () => {
     expect(applyEvent(B, ev('arrive', 0), createRng(1), 30)).toBeNull();
     expect(applyEvent(B, ev('leave', 1), createRng(1), 30)).toBeNull();

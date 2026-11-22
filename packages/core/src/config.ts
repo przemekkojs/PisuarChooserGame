@@ -26,7 +26,7 @@ export const LEVELS = {
   urinalEvery: 2,
   /** People = clamp(round(urinals * peopleShare), 1, urinals - 2). */
   peopleShare: 0.35,
-  /** Effect budget cap = floor(people * effectShareOfPeople). */
+  /** Effect budget cap = floor(people * effectShareOfPeople); 2 wet per splasher are reserved first, then pee, then random wet. */
   effectShareOfPeople: 0.5,
   /** Probability an effect is placed under an occupant. */
   effectUnderOccupantP: 0.5,
@@ -39,14 +39,21 @@ export const LEVELS = {
   /** Pee puddles: first appear at peeStart, +1 every peeEvery levels. */
   peeStart: 10,
   peeEvery: 8,
-  /** First level at which each mechanic can appear (smelly: see smellyStart). */
-  /** pair is only the earliest level; the budget rule in difficulty.ts (people>=3, >=4 free after the pair) makes the first pair appear at L13. */
+  /**
+   * First level at which each mechanic can appear (smelly: see smellyStart).
+   * pair is only the earliest level; the budget rule in difficulty.ts (people>=3,
+   * >=4 free after the pair) makes the first pair appear at L13.
+   */
   unlock: { outOfOrder: 9, pair: 8, shy: 12, splasher: 16 },
   /** Shy persons: +1 every shyEvery levels after unlock. */
   shyEvery: 20,
   /** Splashers: +1 every splasherEvery levels after unlock. */
   splasherEvery: 20,
-  /** Out-of-order urinals: +1 every outOfOrderEvery levels after unlock (52: at 18 urinals extra ones raise P(hit) and break difficulty monotonicity). */
+  /**
+   * Out-of-order urinals: +1 every outOfOrderEvery levels after unlock. 52 means
+   * effectively one out-of-order urinal from L9 on: each extra one removes a free
+   * slot, raising P(hit) (it eases the game) and breaking difficulty monotonicity.
+   */
   outOfOrderEvery: 52,
   baseTimeMs: 15000,
   minTimeMs: 3000,
