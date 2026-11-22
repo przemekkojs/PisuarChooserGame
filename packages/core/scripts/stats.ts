@@ -14,6 +14,8 @@ export interface LevelStats {
   pHit: number;
   expDelta: number;
   difficulty: number;
+  /** Share of boards with at least one floor effect under an occupant. */
+  underOccupantPct: number;
 }
 
 export const SEEDS = 200;
@@ -25,8 +27,10 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
   let hits = 0;
   let picks = 0;
   let deltaSum = 0;
+  let underOcc = 0;
   for (let seed = 1; seed <= seeds; seed++) {
     const board = generateBoard(p, createRng(seed * 7919 + level));
+    if (board.some((s) => s.occupant && s.floor !== 'clean')) underOcc++;
     const free: number[] = [];
     board.forEach((s, i) => {
       if (!s.occupant) free.push(i);
@@ -52,6 +56,7 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
     pHit,
     expDelta: deltaSum / picks,
     difficulty,
+    underOccupantPct: underOcc / seeds,
   };
 }
 

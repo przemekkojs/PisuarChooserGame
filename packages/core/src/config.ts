@@ -46,8 +46,8 @@ export const LEVELS = {
   shyEvery: 20,
   /** Splashers: +1 every splasherEvery levels after unlock. */
   splasherEvery: 20,
-  /** Out-of-order urinals: +1 every outOfOrderEvery levels after unlock. */
-  outOfOrderEvery: 20,
+  /** Out-of-order urinals: +1 every outOfOrderEvery levels after unlock (52: at 18 urinals extra ones raise P(hit) and break difficulty monotonicity). */
+  outOfOrderEvery: 52,
   baseTimeMs: 15000,
   minTimeMs: 3000,
   timeStepMs: 300,

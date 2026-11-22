@@ -1,7 +1,7 @@
 import { levelStats } from './stats';
 import { PERK_BASE, SCORING } from '../src/config';
 
-console.log('lvl urin pers smel wet pee timeMs  P(hit)  E[delta]  difficulty');
+console.log('lvl urin pers smel wet pee timeMs  P(hit)  E[delta]  difficulty  underOcc');
 for (let l = 1; l <= 40; l++) {
   const s = levelStats(l);
   console.log(
@@ -16,6 +16,7 @@ for (let l = 1; l <= 40; l++) {
       s.pHit.toFixed(3).padStart(7),
       s.expDelta.toFixed(2).padStart(9),
       s.difficulty.toFixed(2).padStart(10),
+      s.underOccupantPct.toFixed(2).padStart(9),
     ].join(' '),
   );
 }
