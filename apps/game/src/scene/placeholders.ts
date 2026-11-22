@@ -66,11 +66,11 @@ export function outlinedRect(
  */
 export function drawSlot(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): void {
   const floorH = Math.max(24, r.h * 0.12);
-  const floorFill = slot.kind === 'free' ? PALETTE.floor[slot.floor] : PALETTE.floor.clean;
+  const floorFill = PALETTE.floor[slot.floor];
   outlinedRect(g, { x: r.x - 4, y: r.y + r.h, w: r.w + 8, h: floorH }, floorFill, 6);
   outlinedRect(g, { x: r.x, y: r.y + r.h * 0.35, w: r.w, h: r.h * 0.65 }, PALETTE.urinal, r.w * 0.3);
-  if (slot.kind === 'person') {
-    const fill = slot.smelly ? PALETTE.smelly : PALETTE.person;
+  if (slot.occupant) {
+    const fill = slot.occupant.kind === 'smelly' ? PALETTE.smelly : PALETTE.person;
     outlinedRect(g, { x: r.x + r.w * 0.1, y: r.y, w: r.w * 0.8, h: r.h * 0.75 }, fill, r.w * 0.2);
   }
 }

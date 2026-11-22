@@ -244,17 +244,17 @@ export class GameScene extends Phaser.Scene {
 
   /** One slot from textures where they exist, else the placeholder shapes. */
   private drawSlotView(g: Phaser.GameObjects.Graphics, r: Rect, slot: Slot): void {
-    const floorKey = slot.kind === 'free' && slot.floor !== 'clean' ? `floor_${slot.floor}` : '';
-    const personKey = slot.kind === 'person' ? (slot.smelly ? 'person_smelly' : 'person') : '';
+    const floorKey = slot.floor !== 'clean' ? `floor_${slot.floor}` : '';
+    const personKey = slot.occupant ? (slot.occupant.kind === 'smelly' ? 'person_smelly' : 'person') : '';
     const art =
       hasTexture(this, 'urinal') &&
       (floorKey === '' || hasTexture(this, floorKey)) &&
       (personKey === '' || hasTexture(this, personKey));
     if (!art) {
       drawSlot(g, r, slot);
-      if (slot.kind === 'person') {
+      if (slot.occupant) {
         const marker = makeText(this, r.x + r.w / 2, r.y + r.h * 0.35, Math.max(28, r.w * 0.6));
-        marker.setText(slot.smelly ? 'X~' : 'X');
+        marker.setText(slot.occupant.kind === 'smelly' ? 'X~' : 'X');
         this.board.add(marker);
       }
       return;

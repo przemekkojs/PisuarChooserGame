@@ -41,11 +41,13 @@ describe('evaluatePick', () => {
 
 describe('timePenaltyMs', () => {
   it('computes penalties floored to 100 ms', () => {
-    expect(timePenaltyMs(15000, false)).toBe(1500);
-    expect(timePenaltyMs(9400, false)).toBe(900);
-    expect(timePenaltyMs(15000, true)).toBe(3000);
-    expect(timePenaltyMs(12300, false)).toBe(1200);
-    expect(timePenaltyMs(9400, true)).toBe(1800);
+    expect(timePenaltyMs(10000, 0.2)).toBe(2000);
+    expect(timePenaltyMs(10000, 0.1)).toBe(1000);
+    expect(timePenaltyMs(15000, 0.1)).toBe(1500);
+    expect(timePenaltyMs(9400, 0.1)).toBe(900);
+    expect(timePenaltyMs(15000, 0.2)).toBe(3000);
+    expect(timePenaltyMs(12300, 0.1)).toBe(1200);
+    expect(timePenaltyMs(9400, 0.2)).toBe(1800);
   });
 });
 
@@ -56,5 +58,10 @@ describe('occupiedPenaltyMs', () => {
     expect(occupiedPenaltyMs(b, 1, 15000)).toBe(3000);
     expect(occupiedPenaltyMs(b, 2, 15000)).toBe(0);
     expect(occupiedPenaltyMs(b, 9, 15000)).toBe(0);
+  });
+  it('uses the occupant penalty pct', () => {
+    expect(occupiedPenaltyMs(parseBoard('G _ _'), 0, 10000)).toBe(2000);
+    expect(occupiedPenaltyMs(parseBoard('Z _'), 0, 10000)).toBe(2000);
+    expect(occupiedPenaltyMs(parseBoard('_ X'), 0, 10000)).toBe(0);
   });
 });

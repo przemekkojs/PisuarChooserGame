@@ -1,9 +1,21 @@
-import type { CostWeights } from './types';
+import type { CostWeights, OccupantKind, OccupantSpec } from './types';
+
+/** Occupant parameters: single source of truth for cost and penalties. */
+export const OCCUPANTS: Record<OccupantKind, OccupantSpec> = {
+  plain: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  smelly: { weight: 3, decayBase: 0.5, penaltyPct: 0.2, isPerson: true },
+  parent: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  child: { weight: 2, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  gap: { weight: 0, decayBase: 0.5, penaltyPct: 0.2, isPerson: false },
+  shy: { weight: 1, decayBase: 0.8, penaltyPct: 0.1, isPerson: true },
+  splasher: { weight: 1, decayBase: 0.5, penaltyPct: 0.1, isPerson: true },
+  outOfOrder: { weight: 0, decayBase: 0.5, penaltyPct: 0.1, isPerson: false },
+};
 
 export const DEFAULT_WEIGHTS: CostWeights = {
   floor: { clean: 0, wet: 1, pee: 3 },
-  smellyMultiplier: 3,
-  decayBase: 0.5,
+  occupants: OCCUPANTS,
+  floorScentDecay: 0.5,
 };
 
 /** Tunable level-progression constants (consumed by levelParams). */
@@ -37,8 +49,6 @@ export const SCORING = {
   rewardBest: 10,
   penaltyPerCost: 3,
   maxPenalty: 15,
-  occupiedPct: 0.1,
-  smellyPct: 0.2,
 } as const;
 
 /** Base perk prices (doubled per use). */

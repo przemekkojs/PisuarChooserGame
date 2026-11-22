@@ -23,14 +23,14 @@ function bestIndex(g: Game): number {
 function worseIndex(g: Game): number {
   const b = g.state.board;
   const best = bestIndices(b);
-  const i = b.findIndex((s, idx) => s.kind === 'free' && !best.includes(idx));
+  const i = b.findIndex((s, idx) => !s.occupant && !best.includes(idx));
   if (i < 0) throw new Error('no worse urinal');
   return i;
 }
 
 function occupiedIndex(g: Game, smelly?: boolean): number {
   return g.state.board.findIndex(
-    (s) => s.kind === 'person' && (smelly === undefined || s.smelly === smelly),
+    (s) => s.occupant !== null && (smelly === undefined || (s.occupant.kind === 'smelly') === smelly),
   );
 }
 

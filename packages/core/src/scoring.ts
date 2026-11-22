@@ -1,5 +1,5 @@
 import type { Board, CostWeights } from './types';
-import { DEFAULT_WEIGHTS, SCORING } from './config';
+import { DEFAULT_WEIGHTS, OCCUPANTS, SCORING } from './config';
 import { urinalCost, bestIndices } from './cost';
 
 export type PickKind = 'best' | 'worse' | 'occupied';
@@ -15,7 +15,7 @@ export function evaluatePick(
 ): { kind: PickKind; delta: number; best: number[] } {
   const best = bestIndices(board, w);
   const slot = board[index];
-  if (!slot || slot.kind === 'person') return { kind: 'occupied', delta: 0, best };
+  if (!slot || slot.occupant) return { kind: 'occupied', delta: 0, best };
   if (best.includes(index)) return { kind: 'best', delta: SCORING.rewardBest, best };
   const top = best[0];
   if (top === undefined) return { kind: 'occupied', delta: 0, best };
@@ -25,14 +25,13 @@ export function evaluatePick(
 }
 
 /** Time lost for picking an occupied urinal, floored to 100 ms. */
-export function timePenaltyMs(fullTimeMs: number, smelly: boolean): number {
-  const pct = smelly ? SCORING.smellyPct : SCORING.occupiedPct;
-  return Math.floor((fullTimeMs * pct) / 100) * 100;
+export function timePenaltyMs(fullTimeMs: number, penaltyPct: number): number {
+  return Math.floor((fullTimeMs * penaltyPct) / 100) * 100;
 }
 
 /** Penalty for picking `index`; 0 unless that slot is occupied. */
 export function occupiedPenaltyMs(board: Board, index: number, fullTimeMs: number): number {
   const slot = board[index];
-  if (!slot || slot.kind !== 'person') return 0;
-  return timePenaltyMs(fullTimeMs, slot.smelly);
+  if (!slot?.occupant) return 0;
+  return timePenaltyMs(fullTimeMs, OCCUPANTS[slot.occupant.kind].penaltyPct);
 }

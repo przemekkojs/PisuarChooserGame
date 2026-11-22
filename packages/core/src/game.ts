@@ -61,7 +61,7 @@ export interface GameOptions {
 
 const TIMER_STEP_MS = 100;
 
-const copyBoard = (b: Board): Board => b.map((s) => ({ ...s }));
+const copyBoard = (b: Board): Board => b.map((s) => ({ ...s, occupant: s.occupant && { ...s.occupant } }));
 
 export function createGame(opts: GameOptions): Game {
   const rng = createRng(opts.seed);
@@ -116,7 +116,7 @@ export function createGame(opts: GameOptions): Game {
     if (s.phase !== 'PLAYING') return [];
     if (!Number.isInteger(index) || index < 0 || index >= s.board.length) return [];
     const slot = s.board[index]!;
-    if (slot.kind === 'person') {
+    if (slot.occupant) {
       const penaltyMs = occupiedPenaltyMs(s.board, index, s.levelTimeMs);
       const ev: GameEvent[] = [{ type: 'PickedOccupied', index, penaltyMs }];
       s.timeLeftMs -= penaltyMs;

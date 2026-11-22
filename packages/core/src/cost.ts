@@ -5,13 +5,15 @@ const EPSILON = 1e-9;
 
 export function urinalCost(board: Board, index: number, w: CostWeights = DEFAULT_WEIGHTS): number {
   const slot = board[index];
-  if (!slot || slot.kind === 'person') return Infinity;
+  if (!slot || slot.occupant) return Infinity;
   let cost = w.floor[slot.floor];
   for (let j = 0; j < board.length; j++) {
     const other = board[j];
-    if (j === index || !other || other.kind !== 'person') continue;
-    const influence = Math.pow(w.decayBase, Math.abs(j - index) - 1);
-    cost += other.smelly ? influence * w.smellyMultiplier : influence;
+    if (j === index || !other || !other.occupant) continue;
+    const steps = Math.abs(j - index) - 1;
+    const spec = w.occupants[other.occupant.kind];
+    cost += spec.weight * Math.pow(spec.decayBase, steps);
+    cost += w.floor[other.floor] * Math.pow(w.floorScentDecay, steps);
   }
   return cost;
 }

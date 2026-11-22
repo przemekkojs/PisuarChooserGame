@@ -10,7 +10,7 @@ const EPSILON = 1e-9;
 function isValid(board: Board, w: CostWeights): boolean {
   const costs: number[] = [];
   board.forEach((s, i) => {
-    if (s.kind === 'free') costs.push(urinalCost(board, i, w));
+    if (!s.occupant) costs.push(urinalCost(board, i, w));
   });
   if (costs.length < 2) return false;
   return costs.some((c) => Math.abs(c - costs[0]!) > EPSILON);
@@ -29,10 +29,10 @@ function shuffle<T>(arr: T[], rng: Rng): T[] {
 function randomBoard(p: LevelParams, rng: Rng): Board {
   const free = p.urinals - p.persons;
   const slots: Slot[] = [];
-  for (let i = 0; i < p.persons; i++) slots.push({ kind: 'person', smelly: i < p.smellyPersons });
+  for (let i = 0; i < p.persons; i++) slots.push({ floor: 'clean', occupant: { kind: i < p.smellyPersons ? 'smelly' : 'plain' } });
   for (let i = 0; i < free; i++) {
     const floor = i < p.pee ? 'pee' : i < p.pee + p.wet ? 'wet' : 'clean';
-    slots.push({ kind: 'free', floor });
+    slots.push({ floor, occupant: null });
   }
   return shuffle(slots, rng);
 }
@@ -45,8 +45,8 @@ function randomBoard(p: LevelParams, rng: Rng): Board {
  */
 function fallbackBoard(p: LevelParams): Board {
   const board: Board = [];
-  for (let i = 0; i < p.persons; i++) board.push({ kind: 'person', smelly: i < p.smellyPersons });
-  while (board.length < p.urinals) board.push({ kind: 'free', floor: 'clean' });
+  for (let i = 0; i < p.persons; i++) board.push({ floor: 'clean', occupant: { kind: i < p.smellyPersons ? 'smelly' : 'plain' } });
+  while (board.length < p.urinals) board.push({ floor: 'clean', occupant: null });
   return board;
 }
 

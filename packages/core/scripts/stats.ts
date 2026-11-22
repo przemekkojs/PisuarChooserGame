@@ -29,7 +29,7 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
     const board = generateBoard(p, createRng(seed * 7919 + level));
     const free: number[] = [];
     board.forEach((s, i) => {
-      if (s.kind === 'free') free.push(i);
+      if (!s.occupant) free.push(i);
     });
     for (const i of free) {
       const r = evaluatePick(board, i);
