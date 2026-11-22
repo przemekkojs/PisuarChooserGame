@@ -17,7 +17,10 @@ export type Command =
   | { type: 'skipLevel' }
   | { type: 'nextLevel' }
   | { type: 'buyPerk'; perk: PerkType }
-  | { type: 'acknowledgeSummary' };
+  | { type: 'acknowledgeSummary' }
+  | { type: 'pause' }
+  | { type: 'resume' }
+  | { type: 'endRun' };
 
 export type GameEvent =
   | { type: 'DoorOpening' }
@@ -28,7 +31,10 @@ export type GameEvent =
   | { type: 'TimedOut' }
   | { type: 'PerkBought'; perk: PerkType; price: number }
   | { type: 'PerkRejected'; perk: PerkType }
-  | { type: 'NewRecord'; difficulty: Difficulty; level: number };
+  | { type: 'NewRecord'; difficulty: Difficulty; level: number }
+  | { type: 'Paused' }
+  | { type: 'Resumed' }
+  | { type: 'RunEnded' };
 
 export interface GameState {
   phase: Phase;
@@ -45,6 +51,10 @@ export interface GameState {
   perkUses: Record<PerkType, number>;
   /** Stored record for the current difficulty. */
   record: number;
+  /** True while the run is paused; all gameplay commands are ignored. */
+  paused: boolean;
+  /** True when the run ended by endRun (no Continue perk offered). */
+  endedByPlayer: boolean;
 }
 
 export interface Game {
@@ -77,6 +87,8 @@ export function createGame(opts: GameOptions): Game {
     levelTimeMs: 0,
     perkUses: { skip: 0, continue: 0 },
     record: records.easy,
+    paused: false,
+    endedByPlayer: false,
   };
   /** Sub-100 ms time accumulated by tick, not yet shown in timeLeftMs. */
   let tickRemainder = 0;
@@ -148,13 +160,19 @@ export function createGame(opts: GameOptions): Game {
     return s.timeLeftMs <= 0 ? [timeOut()] : [];
   }
 
+  /** Commands that still work while paused. */
+  const PAUSE_PASSTHROUGH = new Set<Command['type']>(['resume', 'endRun']);
+
   function dispatch(cmd: Command): GameEvent[] {
+    if (s.paused && !PAUSE_PASSTHROUGH.has(cmd.type)) return [];
     switch (cmd.type) {
       case 'startGame': {
         if (s.phase !== 'START') return [];
         s.difficulty = cmd.difficulty;
         s.record = records[cmd.difficulty];
         s.playerLevel = 0;
+        s.paused = false;
+        s.endedByPlayer = false;
         s.perkUses = { skip: 0, continue: 0 };
         return [newBoard(startDifficultyLevel(cmd.difficulty))];
       }
@@ -176,12 +194,28 @@ export function createGame(opts: GameOptions): Game {
         return [newBoard(s.difficultyLevel + 1)];
       case 'buyPerk':
         if (cmd.perk === 'skip') return skip();
-        if (cmd.perk === 'continue' && s.phase === 'SUMMARY') return buy('continue');
+        if (cmd.perk === 'continue' && s.phase === 'SUMMARY' && !s.endedByPlayer) return buy('continue');
         return [];
       case 'acknowledgeSummary':
         if (s.phase !== 'SUMMARY') return [];
         s.phase = 'START';
+        s.endedByPlayer = false;
         return [];
+      case 'pause':
+        if (s.phase !== 'PLAYING' && s.phase !== 'DOOR_CLOSED') return [];
+        s.paused = true;
+        return [{ type: 'Paused' }];
+      case 'resume':
+        if (!s.paused) return [];
+        s.paused = false;
+        return [{ type: 'Resumed' }];
+      case 'endRun':
+        if (s.phase === 'START' || s.phase === 'SUMMARY') return [];
+        s.paused = false;
+        s.endedByPlayer = true;
+        tickRemainder = 0;
+        s.phase = 'SUMMARY';
+        return [{ type: 'RunEnded' }];
       default:
         return [];
     }

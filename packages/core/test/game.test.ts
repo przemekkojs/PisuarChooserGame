@@ -502,3 +502,121 @@ describe('determinism', () => {
     expect(run(1).boards).not.toEqual(run(2).boards);
   });
 });
+
+describe('pause, resume and endRun', () => {
+  function playing(opts: Parameters<typeof mk>[0] = {}): Game {
+    const g = mk(opts);
+    g.dispatch({ type: 'startGame', difficulty: 'easy' });
+    g.dispatch({ type: 'openDoor' });
+    return g;
+  }
+
+  it('pause emits Paused once and sets paused', () => {
+    const g = playing();
+    expect(g.dispatch({ type: 'pause' })).toEqual([{ type: 'Paused' }]);
+    expect(g.state.paused).toBe(true);
+    expect(g.dispatch({ type: 'pause' })).toEqual([]);
+  });
+
+  it('ignores gameplay commands while paused', () => {
+    const g = playing();
+    g.dispatch({ type: 'pause' });
+    const before = g.state.timeLeftMs;
+    expect(g.dispatch({ type: 'tick', dtMs: 5000 })).toEqual([]);
+    expect(g.dispatch({ type: 'pickUrinal', index: 0 })).toEqual([]);
+    expect(g.dispatch({ type: 'skipLevel' })).toEqual([]);
+    expect(g.dispatch({ type: 'openDoor' })).toEqual([]);
+    expect(g.state.timeLeftMs).toBe(before);
+  });
+
+  it('resume continues without losing time', () => {
+    const g = playing();
+    g.dispatch({ type: 'pause' });
+    const before = g.state.timeLeftMs;
+    expect(g.dispatch({ type: 'resume' })).toEqual([{ type: 'Resumed' }]);
+    expect(g.state.paused).toBe(false);
+    g.dispatch({ type: 'tick', dtMs: 100 });
+    expect(g.state.timeLeftMs).toBe(before - 100);
+    expect(g.dispatch({ type: 'resume' })).toEqual([]);
+  });
+
+  it('pause works in DOOR_CLOSED; openDoor blocked until resume', () => {
+    const g = mk();
+    g.dispatch({ type: 'startGame', difficulty: 'easy' });
+    expect(g.dispatch({ type: 'pause' })).toEqual([{ type: 'Paused' }]);
+    expect(g.dispatch({ type: 'openDoor' })).toEqual([]);
+    g.dispatch({ type: 'resume' });
+    expect(g.dispatch({ type: 'openDoor' })).toEqual([{ type: 'DoorOpening' }]);
+  });
+
+  it('pause is ignored outside PLAYING/DOOR_CLOSED', () => {
+    const g = mk();
+    expect(g.dispatch({ type: 'pause' })).toEqual([]);
+  });
+
+  it('endRun from PLAYING, paused, DOOR_CLOSED and LEVEL_RESULT goes to SUMMARY', () => {
+    const fromPlaying = playing();
+    const fromPaused = playing();
+    fromPaused.dispatch({ type: 'pause' });
+    const fromDoor = mk();
+    fromDoor.dispatch({ type: 'startGame', difficulty: 'easy' });
+    const fromResult = playing();
+    fromResult.dispatch({ type: 'pickUrinal', index: bestIndex(fromResult) });
+    expect(fromResult.state.phase).toBe('LEVEL_RESULT');
+    for (const g of [fromPlaying, fromPaused, fromDoor, fromResult]) {
+      expect(g.dispatch({ type: 'endRun' })).toEqual([{ type: 'RunEnded' }]);
+      expect(g.state.phase).toBe('SUMMARY');
+      expect(g.state.paused).toBe(false);
+      expect(g.state.endedByPlayer).toBe(true);
+    }
+  });
+
+  it('endRun is ignored in START and SUMMARY', () => {
+    const g = mk();
+    expect(g.dispatch({ type: 'endRun' })).toEqual([]);
+    const h = playing();
+    h.dispatch({ type: 'endRun' });
+    expect(h.dispatch({ type: 'endRun' })).toEqual([]);
+  });
+
+  it('after endRun: no continue perk; acknowledge resets endedByPlayer', () => {
+    const g = playing({ balance: 1e6 });
+    g.dispatch({ type: 'endRun' });
+    expect(g.dispatch({ type: 'buyPerk', perk: 'continue' })).toEqual([]);
+    expect(g.state.balance).toBe(1e6);
+    g.dispatch({ type: 'acknowledgeSummary' });
+    expect(g.state.phase).toBe('START');
+    expect(g.state.endedByPlayer).toBe(false);
+  });
+
+  it('record counts solved levels only; endRun emits no second NewRecord', () => {
+    const g = mk();
+    g.dispatch({ type: 'startGame', difficulty: 'easy' });
+    const evs: GameEvent[] = [];
+    evs.push(...solveLevel(g));
+    evs.push(...solveLevel(g));
+    expect(g.state.playerLevel).toBe(2);
+    expect(evs.filter((e) => e.type === 'NewRecord')).toHaveLength(2);
+    const end = g.dispatch({ type: 'endRun' });
+    expect(end).toEqual([{ type: 'RunEnded' }]);
+    expect(g.state.record).toBe(2);
+  });
+
+  it('playerLevel after endRun mid-level equals solved count', () => {
+    const g = mk();
+    g.dispatch({ type: 'startGame', difficulty: 'easy' });
+    solveLevel(g);
+    g.dispatch({ type: 'openDoor' });
+    g.dispatch({ type: 'endRun' });
+    expect(g.state.playerLevel).toBe(1);
+  });
+
+  it('a new startGame resets paused and endedByPlayer', () => {
+    const g = playing();
+    g.dispatch({ type: 'endRun' });
+    g.dispatch({ type: 'acknowledgeSummary' });
+    g.dispatch({ type: 'startGame', difficulty: 'easy' });
+    expect(g.state.paused).toBe(false);
+    expect(g.state.endedByPlayer).toBe(false);
+  });
+});

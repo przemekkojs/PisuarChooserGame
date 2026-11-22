@@ -120,6 +120,17 @@ describe('session', () => {
     expect(st.saves).toHaveLength(0);
   });
 
+  it('ignores RunEnded, Paused and Resumed: no save, balance unchanged', async () => {
+    const st = fakeStorage({ ...ZERO, balance: 40 });
+    const s = createSession({ storage: st.storage, platform: fakePlatform().platform, seed: () => 1 });
+    await s.init();
+    await expect(
+      s.onEvents('easy', stateWith(999), [{ type: 'Paused' }, { type: 'Resumed' }, { type: 'RunEnded' }]),
+    ).resolves.toBeUndefined();
+    expect(st.saves).toHaveLength(0);
+    expect(s.getBalance()).toBe(40);
+  });
+
   it('tolerates a rejected submit and keeps the local save', async () => {
     const st = fakeStorage();
     const p = fakePlatform(true);
