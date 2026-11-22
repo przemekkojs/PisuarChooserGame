@@ -26,35 +26,82 @@ function shuffle<T>(arr: T[], rng: Rng): T[] {
   return arr;
 }
 
-function randomBoard(p: LevelParams, rng: Rng): Board {
-  const occupants: OccupantKind[] = [];
-  for (let i = 0; i < p.people; i++) occupants.push(i < p.smelly ? 'smelly' : 'plain');
-  const kinds = shuffle(
-    [...occupants.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - p.people).fill(null)],
-    rng,
-  );
-  const slots: Slot[] = kinds.map((k) => ({ floor: 'clean', occupant: k ? { kind: k } : null }));
-  const effects: Floor[] = [...Array<Floor>(p.pee).fill('pee'), ...Array<Floor>(p.wet).fill('wet')];
-  for (const floor of effects) {
+/** Occupant kinds for one board, in placement order (persons, then obstacles). */
+function occupantKinds(p: LevelParams): OccupantKind[] {
+  const kinds: OccupantKind[] = [];
+  const specials: [OccupantKind, number][] = [
+    ['splasher', p.splasher],
+    ['shy', p.shy],
+    ['smelly', p.smelly],
+  ];
+  for (const [kind, n] of specials) for (let i = 0; i < n; i++) kinds.push(kind);
+  while (kinds.length < p.people) kinds.push('plain');
+  for (let i = 0; i < p.outOfOrder; i++) kinds.push('outOfOrder');
+  return kinds;
+}
+
+/** Effect budget as a list; wet first so splasher neighbours get wet when possible. */
+function effectBudget(p: LevelParams): Floor[] {
+  return [...Array<Floor>(p.wet).fill('wet'), ...Array<Floor>(p.pee).fill('pee')];
+}
+
+/**
+ * Splashers wet their clean neighbours, paid from the effect budget.
+ * Returns false when the budget cannot cover them (caller retries).
+ */
+function applySplasherFloors(slots: Slot[], budget: Floor[]): boolean {
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i]!.occupant?.kind !== 'splasher') continue;
+    for (const j of [i - 1, i + 1]) {
+      const n = slots[j];
+      if (!n || n.floor !== 'clean') continue;
+      const floor = budget.shift();
+      if (!floor) return false;
+      n.floor = floor;
+    }
+  }
+  return true;
+}
+
+/** Spreads the remaining effects randomly, under occupants about half the time. */
+function applyRandomFloors(slots: Slot[], budget: Floor[], rng: Rng): void {
+  for (const floor of budget) {
     const under = rng.next() < LEVELS.effectUnderOccupantP;
     let pool = slots.filter((s) => s.floor === 'clean' && (under ? s.occupant : !s.occupant));
     if (pool.length === 0) pool = slots.filter((s) => s.floor === 'clean' && (under ? !s.occupant : s.occupant));
     if (pool.length === 0) break;
     pool[rng.int(0, pool.length - 1)]!.floor = floor;
   }
+}
+
+function randomBoard(p: LevelParams, rng: Rng): Board | null {
+  const occupants = occupantKinds(p);
+  const kinds = shuffle(
+    [...occupants.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - occupants.length).fill(null)],
+    rng,
+  );
+  const slots: Slot[] = kinds.map((k) => ({ floor: 'clean', occupant: k ? { kind: k } : null }));
+  const budget = effectBudget(p);
+  if (!applySplasherFloors(slots, budget)) return null;
+  applyRandomFloors(slots, shuffle(budget, rng), rng);
   return slots;
 }
 
 /**
  * Deterministic fallback: persons packed on the left, free slots clean on the
  * right. With >= 1 person and >= 2 free slots the nearest free slot always
- * costs more than the farthest, so the board is valid. Wet/pee floors are
+ * costs more than the farthest, so the board is valid. Random wet/pee floors are
  * dropped (the guarantee takes priority over the obstacle count).
  */
 function fallbackBoard(p: LevelParams): Board {
   const board: Board = [];
-  for (let i = 0; i < p.people; i++) board.push({ floor: 'clean', occupant: { kind: i < p.smelly ? 'smelly' : 'plain' } });
+  for (const kind of occupantKinds(p)) board.push({ floor: 'clean', occupant: { kind } });
   while (board.length < p.urinals) board.push({ floor: 'clean', occupant: null });
+  // Splashers keep their invariant (wet neighbours) even in the fallback.
+  board.forEach((s, i) => {
+    if (s.occupant?.kind !== 'splasher') return;
+    for (const j of [i - 1, i + 1]) if (board[j]) board[j]!.floor = 'wet';
+  });
   return board;
 }
 
@@ -65,7 +112,7 @@ export function generateBoard(
 ): Board {
   for (let attempt = 0; attempt < LEVELS.maxGenerateAttempts; attempt++) {
     const board = randomBoard(params, rng);
-    if (isValid(board, w)) return board;
+    if (board && isValid(board, w)) return board;
   }
   return fallbackBoard(params);
 }

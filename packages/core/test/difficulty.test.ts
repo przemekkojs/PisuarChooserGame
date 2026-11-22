@@ -83,3 +83,22 @@ describe('levelParams v2 budget', () => {
     expect(levelParams(-5)).toEqual(levelParams(1));
   });
 });
+
+describe('levelParams v2 unlocks', () => {
+  it('gates shy, splasher and outOfOrder by level and keeps a plain person', () => {
+    for (let l = 1; l <= 200; l++) {
+      const p = levelParams(l);
+      if (l < 12) expect(p.shy).toBe(0);
+      if (l < 16) expect(p.splasher).toBe(0);
+      if (l < 9) expect(p.outOfOrder).toBe(0);
+      if (p.people >= 2) expect(p.shy + p.splasher + p.smelly).toBeLessThanOrEqual(p.people - 1);
+      expect(p.people + p.outOfOrder).toBeLessThanOrEqual(p.urinals - 2);
+      expect(p.wet + p.pee).toBeLessThanOrEqual(Math.floor(p.people / 2));
+      expect(p.wet + p.pee).toBeGreaterThanOrEqual(2 * p.splasher);
+    }
+    const p = levelParams(30);
+    expect(p.shy).toBeGreaterThanOrEqual(1);
+    expect(p.splasher).toBeGreaterThanOrEqual(1);
+    expect(p.outOfOrder).toBeGreaterThanOrEqual(1);
+  });
+});

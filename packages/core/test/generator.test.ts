@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, generateBoard, levelParams, urinalCost } from '../src';
+import { bestIndices, createRng, evaluatePick, generateBoard, levelParams, urinalCost } from '../src';
 
 function freeCosts(board: ReturnType<typeof generateBoard>): number[] {
   return board.flatMap((s, i) => (!s.occupant ? [urinalCost(board, i)] : []));
@@ -12,7 +12,7 @@ describe('generateBoard', () => {
       for (let seed = 1; seed <= 200; seed++) {
         const board = generateBoard(params, createRng(seed));
         expect(board).toHaveLength(params.urinals);
-        expect(board.filter((s) => s.occupant)).toHaveLength(params.people);
+        expect(board.filter((s) => s.occupant && s.occupant.kind !== 'outOfOrder')).toHaveLength(params.people);
         expect(board.filter((s) => s.floor !== 'clean').length).toBeLessThanOrEqual(params.wet + params.pee);
         const costs = freeCosts(board);
         expect(costs.length).toBeGreaterThanOrEqual(2);
@@ -53,5 +53,55 @@ describe('generateBoard', () => {
       const board = generateBoard(p, createRng(seed));
       if (p.people >= 2) expect(board.some((s) => s.occupant?.kind === 'plain')).toBe(true);
     }
+  });
+});
+
+describe('generateBoard v2 occupants', () => {
+  const count = (b: ReturnType<typeof generateBoard>, kind: string) => b.filter((s) => s.occupant?.kind === kind).length;
+  it('places shy, splasher and outOfOrder per params (level 20)', () => {
+    const p = levelParams(20);
+    expect(p.shy).toBeGreaterThan(0);
+    expect(p.splasher).toBeGreaterThan(0);
+    expect(p.outOfOrder).toBeGreaterThan(0);
+    for (let seed = 1; seed <= 200; seed++) {
+      const b = generateBoard(p, createRng(seed));
+      expect(count(b, 'shy')).toBe(p.shy);
+      expect(count(b, 'splasher')).toBe(p.splasher);
+      expect(count(b, 'outOfOrder')).toBe(p.outOfOrder);
+      expect(count(b, 'smelly')).toBe(p.smelly);
+      expect(b.filter((s) => s.occupant).length).toBeLessThanOrEqual(p.urinals - 2);
+    }
+  });
+  it('splasher neighbours are never clean and effects stay within budget (level 20)', () => {
+    const p = levelParams(20);
+    for (let seed = 1; seed <= 200; seed++) {
+      const b = generateBoard(p, createRng(seed));
+      b.forEach((s, i) => {
+        if (s.occupant?.kind !== 'splasher') return;
+        for (const j of [i - 1, i + 1]) if (b[j]) expect(b[j]!.floor).not.toBe('clean');
+      });
+      expect(b.filter((s) => s.floor !== 'clean').length).toBeLessThanOrEqual(p.wet + p.pee);
+    }
+  });
+  it('is valid for levels 1..60 x seeds 1..300 and never recommends an occupied slot', () => {
+    for (let level = 1; level <= 60; level++) {
+      const p = levelParams(level);
+      for (let seed = 1; seed <= 300; seed++) {
+        const b = generateBoard(p, createRng(seed));
+        expect(b).toHaveLength(p.urinals);
+        const costs = freeCosts(b);
+        expect(costs.length).toBeGreaterThanOrEqual(2);
+        expect(Math.max(...costs) - Math.min(...costs)).toBeGreaterThan(1e-9);
+        for (const i of bestIndices(b)) expect(b[i]!.occupant).toBeNull();
+      }
+    }
+  });
+  it('tapping an outOfOrder slot is occupied with delta 0', () => {
+    const b = generateBoard(levelParams(20), createRng(3));
+    const i = b.findIndex((s) => s.occupant?.kind === 'outOfOrder');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const r = evaluatePick(b, i);
+    expect(r.kind).toBe('occupied');
+    expect(r.delta).toBe(0);
   });
 });

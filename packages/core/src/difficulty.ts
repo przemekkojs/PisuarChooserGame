@@ -43,9 +43,22 @@ export function levelParams(difficultyLevel: number): LevelParams {
   // With 2+ people at least one stays plain, so a smelly/plain mix persists.
   const smellyCap = people >= 2 ? people - 1 : people;
   const smelly = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
+  // Person subsets share one cap so a plain person always remains.
+  const shy = Math.min(smellyCap - smelly, growth(level, LEVELS.unlock.shy, LEVELS.shyEvery));
   const effectCap = Math.floor(people * LEVELS.effectShareOfPeople);
+  // A splasher wets both neighbours, so it needs two effects from the budget.
+  const splasher = Math.min(
+    smellyCap - smelly - shy,
+    Math.floor(effectCap / 2),
+    growth(level, LEVELS.unlock.splasher, LEVELS.splasherEvery),
+  );
   const pee = Math.min(effectCap, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
-  const wet = Math.min(effectCap - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
+  const wetWanted = Math.min(effectCap - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
+  const wet = Math.max(wetWanted, 2 * splasher - pee);
+  const outOfOrder = Math.min(
+    urinals - 2 - people,
+    growth(level, LEVELS.unlock.outOfOrder, LEVELS.outOfOrderEvery),
+  );
   const raw = LEVELS.baseTimeMs - LEVELS.timeStepMs * (level - 1);
   const timeMs = Math.max(LEVELS.minTimeMs, Math.round(raw / 100) * 100);
   return {
@@ -53,10 +66,10 @@ export function levelParams(difficultyLevel: number): LevelParams {
     timeMs,
     people,
     smelly,
-    shy: 0,
-    splasher: 0,
+    shy,
+    splasher,
     pairs: 0,
-    outOfOrder: 0,
+    outOfOrder,
     wet,
     pee,
     dynamic: [],

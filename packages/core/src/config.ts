@@ -39,6 +39,14 @@ export const LEVELS = {
   /** Pee puddles: first appear at peeStart, +1 every peeEvery levels. */
   peeStart: 10,
   peeEvery: 8,
+  /** First level at which each mechanic can appear. */
+  unlock: { smelly: 6, outOfOrder: 9, pair: 8, shy: 12, splasher: 16 },
+  /** Shy persons: +1 every shyEvery levels after unlock. */
+  shyEvery: 20,
+  /** Splashers: +1 every splasherEvery levels after unlock. */
+  splasherEvery: 20,
+  /** Out-of-order urinals: +1 every outOfOrderEvery levels after unlock. */
+  outOfOrderEvery: 20,
   baseTimeMs: 15000,
   minTimeMs: 3000,
   timeStepMs: 300,
