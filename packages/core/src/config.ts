@@ -24,14 +24,17 @@ export const LEVELS = {
   maxUrinals: 18,
   /** +1 urinal every N levels. */
   urinalEvery: 2,
-  basePersons: 1,
-  /** +1 person every N levels. */
-  personEvery: 12,
+  /** People = clamp(round(urinals * peopleShare), 1, urinals - 2). */
+  peopleShare: 0.35,
+  /** Effect budget cap = floor(people * effectShareOfPeople). */
+  effectShareOfPeople: 0.5,
+  /** Probability an effect is placed under an occupant. */
+  effectUnderOccupantP: 0.5,
   /** Smelly persons: first appear at smellyStart, +1 every smellyEvery levels. */
-  smellyStart: 6,
+  smellyStart: 5,
   smellyEvery: 20,
   /** Wet floors: first appear at wetStart, +1 every wetEvery levels. */
-  wetStart: 5,
+  wetStart: 6,
   wetEvery: 5,
   /** Pee puddles: first appear at peeStart, +1 every peeEvery levels. */
   peeStart: 10,

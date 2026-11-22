@@ -22,11 +22,17 @@ describe('levelParams', () => {
   it('starts at level 1', () => {
     expect(levelParams(1)).toEqual({
       urinals: 3,
-      persons: 1,
-      smellyPersons: 0,
+      timeMs: 15000,
+      people: 1,
+      smelly: 0,
+      shy: 0,
+      splasher: 0,
+      pairs: 0,
+      outOfOrder: 0,
       wet: 0,
       pee: 0,
-      timeMs: 15000,
+      dynamic: [],
+      dynamicMax: 1,
     });
   });
   it('clamps time and urinals', () => {
@@ -39,9 +45,7 @@ describe('levelParams', () => {
       const p = levelParams(l);
       expect(p.timeMs).toBeLessThanOrEqual(prev.timeMs);
       expect(p.urinals).toBeGreaterThanOrEqual(prev.urinals);
-      expect(p.persons).toBeLessThanOrEqual(p.urinals - 2);
-      expect(p.smellyPersons).toBeLessThanOrEqual(p.persons);
-      expect(p.wet + p.pee).toBeLessThanOrEqual(p.urinals - p.persons);
+      expect(p.people).toBeLessThanOrEqual(p.urinals - 2);
       prev = p;
     }
   });
@@ -56,9 +60,26 @@ describe('levelParams smelly mix', () => {
   it('always keeps a plain person when there are two or more', () => {
     for (let level = 1; level <= 300; level++) {
       const p = levelParams(level);
-      expect(p.smellyPersons).toBeLessThanOrEqual(p.persons);
-      if (p.persons >= 2) expect(p.smellyPersons).toBeLessThan(p.persons);
+      expect(p.smelly).toBeLessThanOrEqual(p.people);
+      if (p.people >= 2) expect(p.smelly).toBeLessThan(p.people);
     }
   });
 });
 
+
+describe('levelParams v2 budget', () => {
+  it('people share, effect budget and sanity over 1..60', () => {
+    for (let l = 1; l <= 60; l++) {
+      const p = levelParams(l);
+      const expected = Math.min(p.urinals - 2, Math.max(1, Math.round(p.urinals * 0.35)));
+      expect(p.people, `level ${l}`).toBe(expected);
+      expect(p.wet + p.pee).toBeLessThanOrEqual(Math.floor(p.people / 2));
+      expect(p.smelly).toBeLessThanOrEqual(p.people);
+      for (const v of Object.values(p)) if (typeof v === 'number') expect(Number.isNaN(v)).toBe(false);
+    }
+  });
+  it('sanitises NaN and negative levels to level 1', () => {
+    expect(levelParams(NaN)).toEqual(levelParams(1));
+    expect(levelParams(-5)).toEqual(levelParams(1));
+  });
+});

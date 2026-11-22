@@ -44,8 +44,8 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
   return {
     level,
     urinals: p.urinals,
-    persons: p.persons,
-    smelly: p.smellyPersons,
+    persons: p.people,
+    smelly: p.smelly,
     wet: p.wet,
     pee: p.pee,
     timeMs: p.timeMs,

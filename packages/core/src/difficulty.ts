@@ -2,13 +2,27 @@ import { LEVELS } from './config';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+export type DynamicKind = 'mop' | 'arrive' | 'leave';
+
 export interface LevelParams {
   urinals: number;
-  persons: number;
-  smellyPersons: number;
+  timeMs: number;
+  /** All people combined (including child and parent). */
+  people: number;
+  /** Subsets of `people`. */
+  smelly: number;
+  shy: number;
+  splasher: number;
+  /** 1 = child+parent pair (+gap), counts as 2 people. */
+  pairs: 0 | 1;
+  /** Extra obstacles, outside `people`. */
+  outOfOrder: number;
+  /** Total floor-effect budget (including wet from splashers). */
   wet: number;
   pee: number;
-  timeMs: number;
+  /** Unlocked dynamic events (empty until later tasks). */
+  dynamic: DynamicKind[];
+  dynamicMax: 1 | 2;
 }
 
 export function startDifficultyLevel(d: Difficulty): number {
@@ -20,22 +34,32 @@ function growth(level: number, start: number, every: number): number {
 }
 
 export function levelParams(difficultyLevel: number): LevelParams {
-  const level = Math.max(1, Math.floor(difficultyLevel));
+  const level = Number.isFinite(difficultyLevel) ? Math.max(1, Math.floor(difficultyLevel)) : 1;
   const urinals = Math.min(
     LEVELS.maxUrinals,
     LEVELS.baseUrinals + Math.floor((level - 1) / LEVELS.urinalEvery),
   );
-  const persons = Math.min(
-    urinals - 2,
-    LEVELS.basePersons + Math.floor((level - 1) / LEVELS.personEvery),
-  );
-  const free = urinals - persons;
-  // With 2+ persons at least one stays plain, so a smelly/plain mix persists.
-  const smellyCap = persons >= 2 ? persons - 1 : persons;
-  const smellyPersons = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
-  const pee = Math.min(free, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
-  const wet = Math.min(free - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
+  const people = Math.min(urinals - 2, Math.max(1, Math.round(urinals * LEVELS.peopleShare)));
+  // With 2+ people at least one stays plain, so a smelly/plain mix persists.
+  const smellyCap = people >= 2 ? people - 1 : people;
+  const smelly = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
+  const effectCap = Math.floor(people * LEVELS.effectShareOfPeople);
+  const pee = Math.min(effectCap, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
+  const wet = Math.min(effectCap - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
   const raw = LEVELS.baseTimeMs - LEVELS.timeStepMs * (level - 1);
   const timeMs = Math.max(LEVELS.minTimeMs, Math.round(raw / 100) * 100);
-  return { urinals, persons, smellyPersons, wet, pee, timeMs };
+  return {
+    urinals,
+    timeMs,
+    people,
+    smelly,
+    shy: 0,
+    splasher: 0,
+    pairs: 0,
+    outOfOrder: 0,
+    wet,
+    pee,
+    dynamic: [],
+    dynamicMax: 1,
+  };
 }
