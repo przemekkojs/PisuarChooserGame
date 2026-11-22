@@ -7,7 +7,7 @@ function freeCosts(board: ReturnType<typeof generateBoard>): number[] {
 }
 
 describe('generateBoard', () => {
-  it('produces valid boards for levels 1..300 and 50 seeds', () => {
+  it('produces valid boards for levels 1..60 and 200 seeds', () => {
     for (let level = 1; level <= 60; level++) {
       const params = levelParams(level);
       for (let seed = 1; seed <= 200; seed++) {
@@ -48,11 +48,14 @@ describe('generateBoard', () => {
     expect(under / total).toBeGreaterThanOrEqual(0.3);
     expect(under / total).toBeLessThanOrEqual(0.7);
   });
-  it('keeps a plain person in every mixed board (level 12)', () => {
-    const p = levelParams(12);
-    for (let seed = 1; seed <= 200; seed++) {
-      const board = generateBoard(p, createRng(seed));
-      if (p.people >= 2) expect(board.some((s) => s.occupant?.kind === 'plain')).toBe(true);
+  it('keeps a plain person in every mixed board (levels 1..60, seeds 1..50)', () => {
+    for (let level = 1; level <= 60; level++) {
+      const p = levelParams(level);
+      if (p.people < 2) continue;
+      for (let seed = 1; seed <= 50; seed++) {
+        const board = generateBoard(p, createRng(seed));
+        expect(board.some((s) => s.occupant?.kind === 'plain'), `level ${level} seed ${seed}`).toBe(true);
+      }
     }
   });
 });
@@ -73,16 +76,25 @@ describe('generateBoard v2 occupants', () => {
       expect(b.filter((s) => s.occupant).length).toBeLessThanOrEqual(p.urinals - 2);
     }
   });
-  it('splasher neighbours are never clean and effects stay within budget (level 20)', () => {
-    const p = levelParams(20);
-    for (let seed = 1; seed <= 200; seed++) {
-      const b = generateBoard(p, createRng(seed));
-      b.forEach((s, i) => {
-        if (s.occupant?.kind !== 'splasher') return;
-        for (const j of [i - 1, i + 1]) if (b[j]) expect(b[j]!.floor).not.toBe('clean');
-      });
-      expect(b.filter((s) => s.floor !== 'clean').length).toBeLessThanOrEqual(p.wet + p.pee);
+  it('splasher neighbours are always wet and effects stay within budget (levels 16..60 with splashers)', () => {
+    let checked = 0;
+    for (let l = 16; l <= 60; l++) {
+      const p = levelParams(l);
+      if (p.splasher === 0) continue;
+      for (let seed = 1; seed <= 100; seed++) {
+        const b = generateBoard(p, createRng(seed));
+        b.forEach((s, i) => {
+          if (s.occupant?.kind !== 'splasher') return;
+          for (const j of [i - 1, i + 1]) {
+            if (!b[j]) continue;
+            expect(b[j]!.floor, `level ${l} seed ${seed}`).toBe('wet');
+            checked++;
+          }
+        });
+        expect(b.filter((s) => s.floor !== 'clean').length).toBeLessThanOrEqual(p.wet + p.pee);
+      }
     }
+    expect(checked).toBeGreaterThan(1000);
   });
   it('is valid for levels 1..60 x seeds 1..300 and never recommends an occupied slot', () => {
     for (let level = 1; level <= 60; level++) {

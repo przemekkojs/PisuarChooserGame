@@ -36,6 +36,33 @@ function growth(level: number, start: number, every: number): number {
   return level < start ? 0 : 1 + Math.floor((level - start) / every);
 }
 
+type SpecialKind = 'smelly' | 'shy' | 'splasher';
+const SPECIAL_KINDS: readonly SpecialKind[] = ['smelly', 'shy', 'splasher'];
+
+/**
+ * Splits `cap` special persons among the wanted counts, one per kind per round
+ * (round-robin). The starting kind rotates with the level, so when the cap is
+ * smaller than the number of unlocked kinds each of them still shows up on
+ * some levels instead of the first one always winning. Deterministic.
+ */
+function splitSpecials(level: number, cap: number, wanted: Record<SpecialKind, number>): Record<SpecialKind, number> {
+  const out: Record<SpecialKind, number> = { smelly: 0, shy: 0, splasher: 0 };
+  const kinds = SPECIAL_KINDS.filter((k) => wanted[k] > 0);
+  // Offset +1: the newest kind leads on its unlock level (shy at L12, splasher at L16).
+  const order = kinds.map((_, i) => kinds[(i + level + 1) % kinds.length]!);
+  let left = cap;
+  while (left > 0 && order.some((k) => out[k] < wanted[k])) {
+    for (const k of order) {
+      if (left === 0) break;
+      if (out[k] < wanted[k]) {
+        out[k]++;
+        left--;
+      }
+    }
+  }
+  return out;
+}
+
 export function levelParams(difficultyLevel: number): LevelParams {
   const level = Number.isFinite(difficultyLevel) ? Math.max(1, Math.floor(difficultyLevel)) : 1;
   const urinals = Math.min(
@@ -52,20 +79,24 @@ export function levelParams(difficultyLevel: number): LevelParams {
   const pairs: 0 | 1 =
     level >= LEVELS.unlock.pair && urinals >= 5 && people >= 3 && urinals - people - 1 - outOfOrder >= 4 ? 1 : 0;
   // Person subsets share one cap: pair members are never special, and with
-  // 2+ people a plain one stays so a smelly/plain mix persists.
-  const smellyCap = pairs ? people - 2 : people >= 2 ? people - 1 : people;
-  const smelly = Math.min(smellyCap, growth(level, LEVELS.smellyStart, LEVELS.smellyEvery));
-  const shy = Math.min(smellyCap - smelly, growth(level, LEVELS.unlock.shy, LEVELS.shyEvery));
+  // 2+ people at least one plain person always remains (spec 6).
+  const specialCap = Math.max(0, people >= 2 ? people - 1 - 2 * pairs : people);
   const effectCap = Math.floor(people * LEVELS.effectShareOfPeople);
-  // A splasher wets both neighbours, so it needs two effects from the budget.
-  const splasher = Math.min(
-    smellyCap - smelly - shy,
-    Math.floor(effectCap / 2),
-    growth(level, LEVELS.unlock.splasher, LEVELS.splasherEvery),
+  const { smelly, shy, splasher } = splitSpecials(level, specialCap, {
+    smelly: growth(level, LEVELS.smellyStart, LEVELS.smellyEvery),
+    shy: growth(level, LEVELS.unlock.shy, LEVELS.shyEvery),
+    // A splasher wets both neighbours, so it needs two wet floors from the budget.
+    splasher: Math.min(Math.floor(effectCap / 2), growth(level, LEVELS.unlock.splasher, LEVELS.splasherEvery)),
+  });
+  // Wet floors for splashers are reserved first; pee takes the rest but leaves
+  // one slot for a random wet floor once wet is unlocked and the budget allows.
+  const wetMin = 2 * splasher;
+  const free = effectCap - wetMin;
+  const pee = Math.max(
+    0,
+    Math.min(free - (free >= 2 && level >= LEVELS.wetStart ? 1 : 0), growth(level, LEVELS.peeStart, LEVELS.peeEvery)),
   );
-  const pee = Math.min(effectCap, growth(level, LEVELS.peeStart, LEVELS.peeEvery));
-  const wetWanted = Math.min(effectCap - pee, growth(level, LEVELS.wetStart, LEVELS.wetEvery));
-  const wet = Math.max(wetWanted, 2 * splasher - pee);
+  const wet = Math.min(effectCap - pee, Math.max(wetMin, growth(level, LEVELS.wetStart, LEVELS.wetEvery)));
   const raw = LEVELS.baseTimeMs - LEVELS.timeStepMs * (level - 1);
   const timeMs = Math.max(LEVELS.minTimeMs, Math.round(raw / 100) * 100);
   return {

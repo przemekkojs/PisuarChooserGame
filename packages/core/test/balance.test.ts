@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PERK_BASE, SCORING, levelParams } from '../src';
+import { PERK_BASE, SCORING, createRng, generateBoard, levelParams } from '../src';
 import { levelStats } from '../scripts/stats';
 
 describe('balance invariants', () => {
@@ -39,6 +39,16 @@ describe('balance invariants', () => {
   it('on levels 10..40 at least 30% of boards have a floor effect under an occupant', () => {
     for (let l = 10; l <= 40; l++) {
       expect(levelStats(l, 100).underOccupantPct, `level ${l}`).toBeGreaterThanOrEqual(0.3);
+    }
+  });
+  it('on levels 15..40 at least 40% of boards have a wet floor', () => {
+    for (let l = 15; l <= 40; l++) {
+      const p = levelParams(l);
+      let wet = 0;
+      for (let seed = 1; seed <= 200; seed++) {
+        if (generateBoard(p, createRng(seed)).some((s) => s.floor === 'wet')) wet++;
+      }
+      expect(wet / 200, `level ${l}`).toBeGreaterThanOrEqual(0.4);
     }
   });
   it('first skip costs about one well-played level', () => {

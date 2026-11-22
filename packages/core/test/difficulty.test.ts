@@ -111,9 +111,10 @@ describe('levelParams pairs', () => {
       if (p.pairs === 1) {
         expect(p.urinals).toBeGreaterThanOrEqual(5);
         expect(p.people).toBeGreaterThanOrEqual(3);
-        // pair takes 3 slots (2 people + gap); at least 2 stay free
+        // pair takes 3 slots (2 people + gap); at least 4 stay free
         expect(p.urinals - (p.people + 1) - p.outOfOrder).toBeGreaterThanOrEqual(4);
-        expect(p.shy + p.splasher + p.smelly).toBeLessThanOrEqual(p.people - 2);
+        // pair members are never special and one plain person always remains
+        expect(p.shy + p.splasher + p.smelly).toBeLessThanOrEqual(p.people - 3);
       }
     }
     expect(levelParams(13).pairs).toBe(1);
@@ -129,6 +130,30 @@ describe('levelParams dynamic events', () => {
       else if (l < 24) expect(p.dynamic, `level ${l}`).toEqual(['mop', 'leave']);
       else expect(p.dynamic, `level ${l}`).toEqual(['mop', 'leave', 'arrive']);
       expect(p.dynamicMax, `level ${l}`).toBe(l >= 30 ? 2 : 1);
+    }
+  });
+});
+
+describe('levelParams plain person and splasher budget', () => {
+  it('leaves >= 1 plain person after the pair and all specials on every level 1..200 with 2+ people', () => {
+    for (let l = 1; l <= 200; l++) {
+      const p = levelParams(l);
+      const plain = p.people - 2 * p.pairs - p.smelly - p.shy - p.splasher;
+      if (p.people >= 2) expect(plain, `level ${l}`).toBeGreaterThanOrEqual(1);
+    }
+  });
+  it('reserves two wet floors per splasher (pee never covers splasher neighbours), 1..200', () => {
+    for (let l = 1; l <= 200; l++) {
+      const p = levelParams(l);
+      expect(p.wet, `level ${l}`).toBeGreaterThanOrEqual(2 * p.splasher);
+    }
+  });
+  it('splashers appear after their unlock (L24, L30, L40) and every unlocked special shows up in 15..26', () => {
+    for (const l of [24, 30, 40]) expect(levelParams(l).splasher, `level ${l}`).toBeGreaterThanOrEqual(1);
+    for (const kind of ['smelly', 'shy', 'splasher'] as const) {
+      const levels = [];
+      for (let l = 15; l <= 26; l++) if (levelParams(l)[kind] >= 1) levels.push(l);
+      expect(levels.length, kind).toBeGreaterThanOrEqual(3);
     }
   });
 });

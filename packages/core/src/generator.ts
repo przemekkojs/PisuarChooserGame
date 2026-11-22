@@ -40,14 +40,15 @@ function occupantKinds(p: LevelParams): OccupantKind[] {
   return kinds;
 }
 
-/** Effect budget as a list; wet first so splasher neighbours get wet when possible. */
+/** Effect budget as a list (levelParams reserves 2 wet per splasher). */
 function effectBudget(p: LevelParams): Floor[] {
   return [...Array<Floor>(p.wet).fill('wet'), ...Array<Floor>(p.pee).fill('pee')];
 }
 
 /**
- * Splashers wet their clean neighbours, paid from the effect budget.
- * Returns false when the budget cannot cover them (caller retries).
+ * Splashers wet their clean neighbours (free or occupied), paying with a 'wet'
+ * from the effect budget (never pee). Returns false when no wet is left
+ * (caller redraws).
  */
 function applySplasherFloors(slots: Slot[], budget: Floor[]): boolean {
   for (let i = 0; i < slots.length; i++) {
@@ -55,9 +56,10 @@ function applySplasherFloors(slots: Slot[], budget: Floor[]): boolean {
     for (const j of [i - 1, i + 1]) {
       const n = slots[j];
       if (!n || n.floor !== 'clean') continue;
-      const floor = budget.shift();
-      if (!floor) return false;
-      n.floor = floor;
+      const k = budget.indexOf('wet');
+      if (k < 0) return false;
+      budget.splice(k, 1);
+      n.floor = 'wet';
     }
   }
   return true;
@@ -78,7 +80,8 @@ function randomBoard(p: LevelParams, rng: Rng): Board | null {
   const occupants = occupantKinds(p);
   const pair = p.pairs === 1 ? ['child', 'gap', 'parent'] : [];
   // Pair members count as 2 people; the gap is outside the budget.
-  // Relies on occupantKinds order (specials, plain, outOfOrder): slicing out indices people-2..people-1 drops 2 plain persons.
+  // Relies on occupantKinds order (specials, plain, outOfOrder): slicing out indices people-2..people-1 drops 2 plain persons
+  // (levelParams caps specials at people-3 with a pair, so at least one plain person stays).
   const rest = pair.length ? occupants.slice(0, p.people - 2).concat(occupants.slice(p.people)) : occupants;
   const kinds = shuffle(
     [...rest.map((k): OccupantKind | null => k), ...Array<null>(p.urinals - rest.length - pair.length).fill(null)],
