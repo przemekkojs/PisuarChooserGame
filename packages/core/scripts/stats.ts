@@ -8,6 +8,10 @@ export interface LevelStats {
   urinals: number;
   persons: number;
   smelly: number;
+  shy: number;
+  splasher: number;
+  pairs: number;
+  outOfOrder: number;
   wet: number;
   pee: number;
   timeMs: number;
@@ -16,6 +20,11 @@ export interface LevelStats {
   difficulty: number;
   /** Share of boards with at least one floor effect under an occupant. */
   underOccupantPct: number;
+  /** Share of boards with at least one plain person / wet floor / pee floor / splasher. */
+  plainPct: number;
+  wetPct: number;
+  peePct: number;
+  splasherPct: number;
 }
 
 export const SEEDS = 200;
@@ -28,9 +37,17 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
   let picks = 0;
   let deltaSum = 0;
   let underOcc = 0;
+  let plain = 0;
+  let wet = 0;
+  let pee = 0;
+  let splasher = 0;
   for (let seed = 1; seed <= seeds; seed++) {
     const board = generateBoard(p, createRng(seed * 7919 + level));
     if (board.some((s) => s.occupant && s.floor !== 'clean')) underOcc++;
+    if (board.some((s) => s.occupant?.kind === 'plain')) plain++;
+    if (board.some((s) => s.floor === 'wet')) wet++;
+    if (board.some((s) => s.floor === 'pee')) pee++;
+    if (board.some((s) => s.occupant?.kind === 'splasher')) splasher++;
     const free: number[] = [];
     board.forEach((s, i) => {
       if (!s.occupant) free.push(i);
@@ -50,6 +67,10 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
     urinals: p.urinals,
     persons: p.people,
     smelly: p.smelly,
+    shy: p.shy,
+    splasher: p.splasher,
+    pairs: p.pairs,
+    outOfOrder: p.outOfOrder,
     wet: p.wet,
     pee: p.pee,
     timeMs: p.timeMs,
@@ -57,6 +78,10 @@ export function levelStats(level: number, seeds = SEEDS): LevelStats {
     expDelta: deltaSum / picks,
     difficulty,
     underOccupantPct: underOcc / seeds,
+    plainPct: plain / seeds,
+    wetPct: wet / seeds,
+    peePct: pee / seeds,
+    splasherPct: splasher / seeds,
   };
 }
 

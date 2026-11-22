@@ -51,28 +51,38 @@ Zmiana: przy `persons >= 2` co najmniej jedna osoba zostaje zwykła (`smellyPers
 Tabela „Wybrane poziomy” wyżej pokazuje stare liczby śmierdzących dla poz. 15-40 (stan z czasu strojenia).
 
 
-## Mechanika v2 (Task 12)
-Symulacja (`npm run sim -w @pisuar/core`) NIE modeluje zdarzeń dynamicznych (sprzątacz, wychodzący, spóźniony) — mierzy tylko planszę startową poziomu, losowy wybór wśród wolnych pisuarów, 200 ziaren. Nowa kolumna `underOcc` = odsetek plansz z ≥1 efektem podłogi pod lokatorem.
+## Mechanika v2 (Task 12 + poprawki po końcowym review)
+Symulacja (`npm run sim -w @pisuar/core`, poziomy 1..60) NIE modeluje zdarzeń dynamicznych (sprzątacz, wychodzący, spóźniony) — mierzy tylko planszę startową poziomu, losowy wybór wśród wolnych pisuarów, 200 ziaren. Kolumny odsetków liczą plansze: `underOcc` — ≥1 efekt podłogi pod lokatorem; `plain%` — ≥1 zwykła osoba; `wet%` / `pee%` — ≥1 mokra / osikana podłoga; `spl%` — ≥1 chlapacz.
 
-| lvl | pisuary | osoby | śmierdzące | mokre | siki | czas ms | P(best) | E[delta] | trudność | underOcc |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 3 | 1 | 0 | 0 | 0 | 15000 | 0.500 | +4.00 | 2.00 | 0.00 |
-| 5 | 5 | 2 | 1 | 0 | 0 | 13800 | 0.333 | +0.28 | 3.26 | 0.00 |
-| 10 | 7 | 2 | 1 | 0 | 1 | 12300 | 0.250 | -2.73 | 4.88 | 0.47 |
-| 13 | 9 | 3 | 1 | 0 | 1 | 11400 | 0.256 | -2.43 | 5.13 | 0.56 |
-| 15 | 10 | 4 | 1 | 1 | 1 | 10800 | 0.250 | -2.67 | 5.56 | 0.71 |
-| 20 | 12 | 4 | 1 | 0 | 2 | 9300 | 0.167 | -4.57 | 9.68 | 0.78 |
-| 30 | 17 | 6 | 2 | 0 | 3 | 6300 | 0.111 | -6.13 | 21.43 | 0.80 |
-| 40 | 18 | 6 | 2 | 0 | 3 | 3300 | 0.101 | -6.29 | 45.23 | 0.88 |
+| lvl | pisuary | osoby | śm. | nieśm. | chlap. | para | nieczynne | mokre | siki | czas ms | P(best) | trudność | underOcc | plain% | wet% | pee% | spl% |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 3 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 15000 | 0.500 | 2.00 | 0.00 | 1.00 | 0.00 | 0.00 | 0.00 |
+| 5 | 5 | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 13800 | 0.333 | 3.26 | 0.00 | 1.00 | 0.00 | 0.00 | 0.00 |
+| 10 | 7 | 2 | 1 | 0 | 0 | 0 | 1 | 0 | 1 | 12300 | 0.250 | 4.88 | 0.47 | 1.00 | 0.00 | 1.00 | 0.00 |
+| 12 | 8 | 3 | 1 | 1 | 0 | 0 | 1 | 0 | 1 | 11700 | 0.250 | 5.13 | 0.49 | 1.00 | 0.00 | 1.00 | 0.00 |
+| 13 | 9 | 3 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 11400 | 0.253 | 5.21 | 0.56 | 1.00 | 0.00 | 1.00 | 0.00 |
+| 15 | 10 | 4 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 10800 | 0.253 | 5.50 | 0.71 | 1.00 | 1.00 | 1.00 | 0.00 |
+| 16 | 10 | 4 | 0 | 0 | 1 | 1 | 1 | 2 | 0 | 10500 | 0.251 | 5.69 | 0.77 | 1.00 | 1.00 | 0.00 | 1.00 |
+| 20 | 12 | 4 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 9300 | 0.168 | 9.63 | 0.78 | 1.00 | 1.00 | 1.00 | 0.00 |
+| 24 | 14 | 5 | 0 | 1 | 1 | 1 | 1 | 2 | 0 | 8100 | 0.143 | 12.96 | 0.58 | 1.00 | 1.00 | 0.00 | 1.00 |
+| 26 | 15 | 5 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 7500 | 0.125 | 16.00 | 0.78 | 1.00 | 1.00 | 1.00 | 0.00 |
+| 27 | 16 | 6 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 7200 | 0.125 | 16.67 | 0.85 | 1.00 | 1.00 | 1.00 | 1.00 |
+| 30 | 17 | 6 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 6300 | 0.111 | 21.43 | 0.80 | 1.00 | 1.00 | 1.00 | 1.00 |
+| 40 | 18 | 6 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 3300 | 0.100 | 45.45 | 0.81 | 1.00 | 1.00 | 1.00 | 1.00 |
+| 60 | 18 | 6 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 3000 | 0.100 | 50.00 | 0.84 | 1.00 | 1.00 | 1.00 | 1.00 |
 
-Cele: P(poz. 1) = 0.500 (≥ 0.4), P(poz. 30) = 0.111 (≤ 0.2), trudność niemalejąca na 1..60 (tolerancja 2%), `underOcc` ≥ 0.45 na poziomach 10–40 (cel ≥ 0.30), `people ≥ wet + pee + 1` na 10–40 — wszystko w `balance.test.ts` (rozszerzonym o poziomy 1..60, brak NaN, efekty pod lokatorem).
+Cele (wszystkie w `balance.test.ts`): P(poz. 1) = 0.500 (≥ 0.4), P(poz. 30) = 0.111 (≤ 0.2), trudność niemalejąca na 1..60 (tolerancja 2%), `underOcc` ≥ 0.45 na 10–40 (cel ≥ 0.30), `people ≥ wet + pee + 1` na 10–40, mokra podłoga na ≥ 40% plansz na 15–40 (faktycznie 100%). Stałe `LEVELS` nie wymagały zmian po poprawkach: P(trafienia) zależy prawie wyłącznie od liczby wolnych pisuarów, a ta się nie zmieniła.
 
 ### Zmieniona stała
-- `outOfOrderEvery` 20 -> 52. Przy 18 pisuarach każdy kolejny zepsuty pisuar zmniejsza liczbę wolnych (P(trafienia) rośnie 0.111 -> 0.125), więc przeszkoda ułatwiała grę, a trudność spadała o ~10% na poziomie 49 (test 1..60 czerwony). Teraz zepsuty pisuar jest jeden (od poz. 9) do poz. 60; wartości pośrednie (26) psuły monotoniczność już na poz. 35.
-- Reszta stałych bez zmian (spełniają cele).
+- `outOfOrderEvery` 20 -> 52. Przy 18 pisuarach każdy kolejny zepsuty pisuar zmniejsza liczbę wolnych (P(trafienia) rośnie 0.111 -> 0.125), więc przeszkoda ułatwiała grę, a trudność spadała o ~10% na poziomie 49 (test 1..60 czerwony). Teraz zepsuty pisuar jest faktycznie jeden (od poz. 9) do poz. 60; wartości pośrednie (26) psuły monotoniczność już na poz. 35.
 
-### Efekty a limit (poziom 10)
-Na poz. 10 `effectCap = floor(2 osoby * 0.5) = 1` i cały limit zajmuje siki (mokra podłoga = 0; wet wraca na poz. 15–17 przy limicie 2, potem znika, bo siki zajmują cały limit: 2 na poz. 18–26, 3 od 27). Uznane za akceptowalne: siki to mocniejszy efekt (koszt 3 vs 1) i spec zakłada pee od poz. 10; mokre podłogi nadal pojawiają się przez chlapaczy (poz. 16+) i w poz. 6–9/15–17. Próba `effectShareOfPeople` 0.6 przywróciłaby wet wyżej, ale łamie testy budżetu (limit ≤ ludzie/2, spec rozdz. 6) — odrzucona. Jeśli granie pokaże, że brakuje mokrych podłóg wysoko, trzeba zmienić regułę limitu (nie stałą).
+### Poprawki po końcowym review
+- **Zawsze ≥1 zwykła osoba (spec rozdz. 6).** Wcześniej przy parze limit postaci specjalnych wynosił `people − 2`, więc na poz. 13–60 nie było żadnego `plain`. Teraz limit to `people − 1 − 2·pairs` (z parą `people − 3`). Skutek: na poz. 13–14 (3 osoby = para + 1 zwykły) nie ma śmierdzącego ani innych specjalnych.
+- **Podział limitu między smelly/shy/splasher** jest rotowany z poziomem (round-robin, start przesunięty o poziom), więc każdy odblokowany rodzaj się pojawia: przy limicie 1 (poz. 15–20) i 2 (poz. 21–26) rodzaje zmieniają się co poziom, od poz. 27 (limit 3) są wszystkie trzy naraz. Nowy rodzaj prowadzi na swoim poziomie odblokowania (nieśmiały 12, chlapacz 16). Wcześniej chlapacz znikał na 16–20, 25–26 i od 32.
+- **Mokre podłogi i chlapacz.** Dawny opis („mokre nadal pojawiają się przez chlapaczy (poz. 16+)”) był nieprawdziwy: siki zajmowały cały limit, więc `wet = 0` od poz. 18 i chlapacz oblewał sąsiadów sikami. Teraz `levelParams` najpierw rezerwuje `2 · splasher` mokrych, siki biorą resztę, ale przy wolnym limicie ≥2 zostawiają 1 miejsce na losową mokrą; generator płaci za sąsiadów chlapacza zawsze `wet` z budżetu. Wynik: mokra podłoga na 100% plansz od poz. 15, siki na poziomach bez chlapacza przy limicie 2 (np. 15, 17, 18, 20) i wszędzie od 27; na poz. 16, 19, 21, 22, 24, 25 (chlapacz przy limicie 2) sików nie ma.
 
 ### Para wcześniej niż poz. 13?
-Nie. Pierwszą parę blokuje reguła budżetu w `difficulty.ts` (`people ≥ 3` i ≥4 wolne po jej ustawieniu), a nie stała `unlock.pair`; zejście poniżej poz. 13 wymaga zmiany reguły (łagodniejsze progi łamały monotoniczność przy poz. 9/11 — zob. dziennik Task 7). Zgodne z specem (rozdz. 11).
+Nie. Pierwszą parę blokuje reguła budżetu w `difficulty.ts` (`people ≥ 3` i ≥4 wolne po jej ustawieniu), a nie stała `unlock.pair`; zejście poniżej poz. 13 wymaga zmiany reguły (łagodniejsze progi łamały monotoniczność przy poz. 9/11 — zob. dziennik Task 7). Przesunięcie pary na `people ≥ 4` (poz. 15) psuje monotoniczność na poz. 15 (dochodzi pole `gap`, ubywa wolnego pisuaru). Zgodne z specem (rozdz. 11).
+
+### Ograniczenie (do decyzji gracza)
+Od poz. 27 skład jest stały (6 osób: para, 1 śmierdzący, 1 nieśmiały, 1 chlapacz, 1 zwykły; 2 mokre + 1 siki): limit osób przy 18 pisuarach to 6, więc wzrost `smellyEvery`/`shyEvery`/`splasherEvery` (2. sztuka od poz. 25/32/36) nie ma miejsca. Trudność rośnie wtedy tylko przez czas (do poz. 41). Zmiana wymagałaby wyższego `peopleShare` (więcej osób = mniej wolnych = łatwiej) — poza zakresem tej poprawki.
